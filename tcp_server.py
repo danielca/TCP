@@ -1,31 +1,39 @@
 #! /usr/bin/env python
-#
-# TCP Server Script
-# Version: 0.9.1
-#
-# Author: Darren Chaddock
-# Created: 2014/02/27
-#
-# Edited By: Casey Daniel
-# Edited: 2014/05/06
-#
-# Description:
-#    TCP Server to respond to data file transmissions from 
-#    the FPGA->WiFly Module. 
-#
-# Changelog:
-#   0.9.0:
-#     -initial release
-#   0.9.1:
-#     -Server now starts file_manager.py to combine the files
-#     -NOTE: This version is still untested
-#
-# TODO:
-# -start filtering and plotting scripts in new thread
-# -add files for data processing and plot generation
-# -move file format to .cdf
-#
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+"""
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ TCP Server Script
+ Version: 0.10.1
+
+ Author: Darren Chaddock
+ Created: 2014/02/27
+
+ Edited By: Casey Daniel
+ Edited: 2014/05/06
+
+ Description:
+    TCP Server to respond to data file transmissions from
+    the FPGA->WiFly Module.
+
+ Changelog:
+   0.9.0:
+     -initial release
+
+   0.9.1:
+     -Server now starts file_manager.py to combine the files
+     -NOTE: This version is still untested
+
+   0.10.1:
+     -Removed combining of files
+     -Removed file_manager.py
+     -Re-Structure to be less dependent on closing of connections.
+     -Removed milliseconds from file name
+     -NOTE: Still untested
+
+ TODO:
+  -Test Server
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+"""
 
 import socket
 from socket import error as SocketError
@@ -126,79 +134,6 @@ def recordChunkFailure(hsk, chunkNumber):
     dropString = "Requesting retransmit of chunk %02d (%s%s%s_%s%s%s_%s_%s_%s_%02d.chunk.dat)\n" % (int(chunkNumber), year, month, day, hour, minute, second, milliseconds, siteUID, deviceUID, int(chunkNumber))
     logger.info(dropString)
 
-##################################
-# Write the data to a file
-# To be removed in 0.9.2
-##################################
-def buildFullDataFile(hsk):
-    # init
-    global logger
-    
-    # set hsk values
-    hskSplit = hsk[1:-1].split(',')
-    day = hskSplit[0][:2]
-    month = hskSplit[0][2:4]
-    year = YEAR_PREFIX + hskSplit[0][4:]
-    hour = hskSplit[1][:2]
-    minute = hskSplit[1][2:4]
-    second = hskSplit[1][4:6]
-    milliseconds = hskSplit[1][7:]
-    siteUID = hskSplit[6]
-    deviceUID = hskSplit[8]
-
-    # set destination filename
-    destinationPath = "%s/%s/%s/%s/%s_%s/ut%s" % (ROOT_FILE_PATH, year, month, day, siteUID, deviceUID, hour)
-    destinationFilename = "%s%s%s_%s%s%s_%s_%s_%s.full.dat" % (year, month, day, hour, minute, second, milliseconds, siteUID, deviceUID)
-    destinationFullFilename = "%s/%s" % (destinationPath, destinationFilename)
-
-    # set list of files to use (all will be concatenated together into one large file)
-    globFilename = "%s/%s%s%s_%s%s%s_%s_%s_%s_*.chunk.dat" % (destinationPath, year, month, day, hour, minute, second, milliseconds, siteUID, deviceUID)
-    globList = glob.glob(globFilename)
-    globList.sort()
-    if (globList == None):
-        logger.error("Error retrieving list of files to concatenate, aborting full file building process")
-        return 1
-                
-    # read all chunk files and write the single total file
-    logger.info("Attempting to build full data file '%s'" % (destinationFullFilename))
-    try:
-        # init
-        fp_out = open(destinationFullFilename, "wb")
-        
-        # read and write from each file
-        expectedTotalSize = 0
-        for filename in globList:
-            chunkSize = os.stat(filename).st_size
-            expectedTotalSize += chunkSize
-            logger.debug("Concatenating %d bytes from '%s' ... " % (chunkSize, os.path.basename(filename)))
-            fp_in = open(filename, "rb")
-            for line in fp_in:
-                fp_out.write(line)
-            fp_in.close()
-        
-        # close
-        fp_out.close()
-    except IOError, e:
-        logger.error("IOError when reading or writing data to file: %s" % (str(e)))
-        if (os.path.exists(destinationFullFilename)):
-            os.remove(destinationFullFilename)
-        return 1
-
-    # remove all chunk files
-    fullFileActualSize = os.stat(destinationFullFilename).st_size
-    if (expectedTotalSize == fullFileActualSize):
-        logger.info("Full file built successfully")
-        logger.info("Removing chunk files")
-        for filename in globList:
-            logger.debug("Removing chunk file '%s' ... " % (os.path.basename(filename)))
-            #os.remove(filename)
-    else:
-        logger.error("Chunks processed but filesize doesn't match the expected size --> %d != %d (EXP/ACT)" % (expectedTotalSize, fullFileActualSize))
-        return 1
-    
-    # return
-    return 0
-
 
 ##################################
 # Write the data to a file
@@ -220,7 +155,7 @@ def writeDataToFile(data, hsk):
     siteUID = hskSplit[6]
     deviceUID = hskSplit[8]
     filePath = "%s/%s/%s/%s/%s_%s/ut%s" % (ROOT_FILE_PATH, year, month, day, siteUID, deviceUID, hour)
-    filename = "%s%s%s_%s%s%s_%s_%s_%s_%02d.chunk.dat" % (year, month, day, hour, minute, second, milliseconds, siteUID, deviceUID, int(chunkNumber))
+    filename = "%s%s%s_%s%s%s_%s_%s_%02d.chunk.dat" % (year, month, day, hour, minute, second, siteUID, deviceUID, int(chunkNumber))
     fullFilename = "%s/%s" % (filePath, filename)
     
     # create path for destination filename if it doesn't exist
@@ -265,35 +200,45 @@ def processConnection(threadNum, conn, addr, socket):
         writeFileFlag = True
         wakeupWait = False
         dataReceivedFlag = False
+        CloseConnection = False
         
         # while there is data coming in
         while 1:
             packet = conn.recv(BUFFER_SIZE)
+            if (packet.startseith(CONTROL_CLOSE)):
+                CloseConnection= True
+                break #connection close request
+
             if (wakeupWait == True or dataReceivedFlag == True):  # will wait for an empty packet from the FPGA to signal that it has remotely closed the connection
                 if not packet: 
                     break  # empty packet
+
             elif (packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE)):
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
                 logger.info("Received wakeup call: '%s' and sending response '%s'" % (packet, CONTROL_WAKEUP_CALL_SEND))
                 writeFileFlag = False
-                wakeupWait = True
+                wakeupWait = False
                 continue
+
             elif (packet.startswith(CONTROL_HSK_RECEIVE)):
                 packet = packet.lstrip(CONTROL_HSK_RECEIVE)
                 if (len(packet) != 0 and packet[0] == '{' and packet[-1] == '}'):  # HSK values received OK in one packet
                     hsk = packet
                     logger.info("Received HSK data string: '%s'" % (hsk))
                     conn.send(CONTROL_DATA_REQUEST)
+
                 else:
                     logger.warning("Received invalid formed HSK packet, requesting resend")
                     conn.send(CONTROL_HSK_REQUEST)
                     writeFileFlag = False
+
             else:
                 dataPacketInfo.append([len(packet), datetime.datetime.now().strftime("%s")])
                 packetCount += 1
                 logger.debug("%d (%d bytes)" % (packetCount, len(packet)))
                 if not packet: 
                     break  # empty packet
+
                 data += packet
                 if (data.endswith(CONTROL_CLOSE)):
                     data = data.rstrip(CONTROL_CLOSE)
@@ -350,9 +295,10 @@ def processConnection(threadNum, conn, addr, socket):
                 threadCount -= 1
                 return 0
         
-        # close connection            
-        logger.info("Safely closing connection")
-        conn.close()
+        # close connection
+        if CloseConnection:
+            logger.info("Safely closing connection")
+            conn.close()
         if (writeFileFlag == True):
             # write data
             ret = writeDataToFile(data, hsk, fileChunksReceived)
