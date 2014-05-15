@@ -22,15 +22,20 @@
      -Server now starts file_manager.py to combine the files
      -NOTE: This version is still untested
 
-   0.10.1:
+   0.10.0:
      -Removed combining of files
      -Removed file_manager.py
      -Re-Structure to be less dependent on closing of connections.
      -Removed milliseconds from file name
      -NOTE: Still untested
 
+   0.10.1:
+    -Added test directories for testing on a macbook
+    -fixed bug for crashing with log files directories
+
  TODO:
   -Test Server
+  -look into damon processes
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -51,11 +56,14 @@ import subprocess
 from threading import Thread
 
 # globals
-TCP_IP = "136.159.51.230"
+#TCP_IP = "136.159.51.230" #Sever IP
+TCP_IP = "136.159.51.194" #Test IP for Casey's Mac
 TCP_PORT = 25000
 BUFFER_SIZE = 1024
-LOG_FILENAME = "logs/above_vlf_acquire_server.log"
-ROOT_FILE_PATH = "/data/vlf"
+LOG_PATH = "/logs"
+LOG_FILENAME = "above_vlf_acquire_server.log"
+#ROOT_FILE_PATH = "/data/vlf" #Sever Root Path
+ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
@@ -95,7 +103,11 @@ def initLogging():
     # initialize the logger
     logger = logging.getLogger("ABOVE VLF Acquisition Logger")
     logger.setLevel(logging.DEBUG)
-    handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUP_COUNT)
+    LogPath = os.path.join(ROOT_FILE_PATH, "logs")
+    if not os.path.exists(LogPath):
+        os.makedirs(LogPath)
+    LOG_FILE = os.path.join(LogPath,LOG_FILENAME)
+    handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUP_COUNT)
     formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s","%Y-%m-%d %H:%M:%S UTC")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -131,7 +143,7 @@ def recordChunkFailure(hsk, chunkNumber):
     siteUID = hskSplit[6]
     deviceUID = hskSplit[8]
     headerString = datetime.datetime.now().strftime("[%Y/%m/%d %H:%M:%S UTC]")
-    dropString = "Requesting retransmit of chunk %02d (%s%s%s_%s%s%s_%s_%s_%s_%02d.chunk.dat)\n" % (int(chunkNumber), year, month, day, hour, minute, second, milliseconds, siteUID, deviceUID, int(chunkNumber))
+    dropString = "Requesting retransmit of chunk %02d (%s%s%s_%s%s%s_%s_%s_%02d.chunk.dat)\n" % (int(chunkNumber), year, month, day, hour, minute, second, siteUID, deviceUID, int(chunkNumber))
     logger.info(dropString)
 
 
