@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 0.10.1
+ Version: 2.0.0
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -33,8 +33,13 @@
     -Added test directories for testing on a macbook
     -fixed bug for crashing with log files directories
 
+   2.0.0:
+    -Tested server
+    -Bug fixes
+
+
  TODO:
-  -Test Server
+  -Examine hard coded number of files
   -look into damon processes
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -56,15 +61,15 @@ import subprocess
 from threading import Thread
 
 # globals
-#TCP_IP = "136.159.51.230" #Sever IP
-TCP_IP = "136.159.51.194" #Test IP for Casey's Mac
-TCP_PORT = 25000
+TCP_IP = "136.159.51.230" #Sever IP
+#TCP_IP = "136.159.51.194" #Test IP for Casey's Mac
+TCP_PORT = 26000
 BUFFER_SIZE = 1024
 LOG_PATH = "/logs"
 LOG_FILENAME = "above_vlf_acquire_server.log"
-#ROOT_FILE_PATH = "/data/vlf" #Sever Root Path
-ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
-TOTAL_CHUNKS_PER_FILE = 45
+ROOT_FILE_PATH = "/data/vlf/testServer" #Sever Root Path
+#ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
+TOTAL_CHUNKS_PER_FILE = 1
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
 threadCount = 0
@@ -217,7 +222,8 @@ def processConnection(threadNum, conn, addr, socket):
         # while there is data coming in
         while 1:
             packet = conn.recv(BUFFER_SIZE)
-            if (packet.startseith(CONTROL_CLOSE)):
+            if (packet.startswith(CONTROL_CLOSE)):
+                logger.info("Recieved close connection")
                 CloseConnection= True
                 break #connection close request
 
@@ -255,6 +261,7 @@ def processConnection(threadNum, conn, addr, socket):
                 if (data.endswith(CONTROL_CLOSE)):
                     data = data.rstrip(CONTROL_CLOSE)
                     dataReceivedFlag = True
+                    CloseConnection = True
                     break
                     
         # set and check the total chunk size that we expect (information needed is in the HSK)
@@ -267,7 +274,7 @@ def processConnection(threadNum, conn, addr, socket):
                 
                 # set expected chunk size
                 expectedChunkSize = int(dataBytes) + int(startStringBytes) + int(stopStringBytes)
-                
+                print expectedChunkSize, int(startStringBytes), int(stopStringBytes)
                 # set hsk values to make sure that we got them all
                 day = hskSplit[0][:2]
                 month = hskSplit[0][2:4]
@@ -287,6 +294,7 @@ def processConnection(threadNum, conn, addr, socket):
                     logger.info("Chunk received complete (%d bytes, %d packets), responding with success control" % (expectedChunkSize, packetCount))
                     conn.send(CONTROL_DATA_RESPONSE_OK)
                 else:
+                    print len(data), expectedChunkSize
                     logger.warning("Chunk received incomplete (%d bytes, %d packets), responding with failure control" % (len(data), packetCount))
                     recordChunkFailure(hsk, fileChunksReceived)
                     conn.send(CONTROL_DATA_RESPONSE_NOK)
@@ -313,7 +321,7 @@ def processConnection(threadNum, conn, addr, socket):
             conn.close()
         if (writeFileFlag == True):
             # write data
-            ret = writeDataToFile(data, hsk, fileChunksReceived)
+            ret = writeDataToFile(data, hsk)
             fileChunksReceived += 1
             
             # check if it is time to build the full file out of all the chunks
