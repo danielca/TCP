@@ -1,7 +1,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.0.1
+ Version: 0.0.2
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -14,31 +14,48 @@
  Changelog:
     0.0.1:
      -N/A
+    0.0.2:
+     -Chunk files are now moved out of the main directory into a chunk directory
 
 
  TODO:
-   -everything
+   -send data to RTEMP
+   -create thumbmail and send to RTEMP
+   -combine files into one larger file
+   -un-comment the timer function
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
 __name__ = '__main__'
 import threading
 import logging
+import logging.handlers
 import os
+import glob
+import struct
+import shutil
+
 
 #################
 #  Constants
 #################
-TIME_DELAY = 60 #Seconds
+#Time Delay between clean-ups
+TIME_DELAY = 60.0 #Seconds
+
+#File Paths
 #RAW_FILE_PATH = "/data/vlf" #Sever Root Path
-RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
-LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs"
+RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/" #Test path for Casey's Mac
+CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"
+FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"
+
 
 # logging strings
+LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs"
 LOGFILE_MAX_BYTES = 1024000 * 100   #100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_FILENAME = "FileManager.log"
 logger = None
+
 
 def loggerInit():
     global logger
@@ -57,19 +74,158 @@ def loggerInit():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    print "Logger has now been started, please see log file at %s/%s".format(LOG_PATH, LOG_FILENAME)
+    print "Logger has now been started, please see log file at %s/%s" % (LOG_PATH, LOG_FILENAME)
     print "**********************************************************************"
     # write initial messages
     logger.info("+++++++ ABOVE VLF File Manager Log +++++++")
     logger.info("Starting File Manager......")
 
 
-def main():
-    global logger
-    logger.info("Starting clean up")
-    
+def unpackFile(path, fileName):
+    header = ""
+    startKey = ""
+    dataList = []
+    chan1 = []
+    chan2 = []
+    found = False
+    logging.info("Starting file " + fileName)
+    if not os.path.isfile(os.path.join(path, fileName)):
+        logging.warning("could not find " + fileName)
+        return None, None, None
 
-    threading.Timer(TIME_DELAY, main).start()
+    filesize = os.path.getsize(os.path.join(path, fileName))
+    if filesize < 1000:
+        logging.warning(fileName + " is below 1000 bytes")
+        #contents.close()
+        contents = None
+        return None, None, None
+
+    with open(os.path.join(path, fileName), 'rb') as contents:
+
+
+        #looks for the closing bracket in the header of the file
+
+        while found==False:
+            char = contents.read(1)
+            #print char
+            header = header + char
+            if char == "}":
+                #Once the close bracket is found, the next 10 characters should be the start key
+                startKey = contents.read(10)
+                #header = header + startKey
+                #print("found the }")
+                found = True
+        if startKey == "Data_Start":
+            logging.info("Found start key for file "+fileName)
+        else:
+            logging.warning("No start key found " + fileName + " is corrupted")
+            contents.close()
+            return None, None, None
+        #Looks for the end key in the file
+        try:
+            logging.debug("Reading the data")
+            data = contents.read(40000)
+            #endKey = data[len(data)-10:len(data)]
+            endKey = contents.read()
+        except IOError:
+            logging.warning("IOE error trying to read the end key")
+            endKey=""
+            contents.close()
+            return None, None, None
+
+    if endKey == "Data_Stop ":
+        logging.debug("Found end key " )
+    else:
+        logging.debug("No end key found in" + fileName)
+    #Unpacks the data from binary into signed ints
+    for i in range(0, len(data), 2):
+        value = data[i:i+2]
+        if len(value) == 2:
+            number = struct.unpack('>h', data[i:i+2])
+            #print number
+            dataList.append(number[0])
+        else:
+            break
+    logging.debug("total points found is " + str(len(dataList)))
+    #Splits data into two channels
+    for j in range(0, len(dataList)):
+        if j % 2 != 0:
+            chan2.append(dataList[j])
+            #if dataList[j] != 0:
+                #print("chan2 has a non 0 " + str(j))
+        else:
+            chan1.append(dataList[j])
+    #Checks to make sure both channels contain 10000 data points. If this is not true the file is curppted
+    if len(chan2) != 10000:
+        logging.warning("Chanel 2 did not containg the right number of data points, " + fileName + " is corupted")
+        contents.close()
+        return None, None, None
+    if len(chan1) != 10000:
+        logging.warning("Chanel 1 did not containg the right number of data points, " + fileName + " is corupted")
+        contents.close()
+        return None, None, None
+    contents.close()
+
+    header = header[1:len(header)-1]
+    header_parts = header.split(',')
+    return header_parts, chan1, chan2
+
+
+def cleanUp():
+    logger.info("Starting clean up")
+    print "starting"
+    print RAW_FILE_PATH
+
+    Chan1 = []
+    Chan2 = []
+    Headers = []
+
+    for paths, dirs, files in os.walk(RAW_FILE_PATH):
+        os.chdir(paths)
+        for f in glob.glob("*_00.chunk.dat"):
+            #print "found file " + str(f)
+            f = f.split("_")
+            file_name = "%s_%s_%s_%s_%s_*" % (f[0], f[1], f[2], f[3], f[4])
+            curuptedData = True
+            for chunk in glob.glob(file_name):
+                while not curuptedData:
+                    logger.info("Unpacking file %s" % (str(chunk)))
+                    header, data1, data2 = unpackFile(paths, chunk)
+                    if header is not None:
+                        Headers.append(header)
+                        for i in range(0, len(data1)):
+                            Chan1.append(data1[i])
+                            Chan2.append(data2[i])
+                    else:
+                        logger.warning("Invalid file %s" % (str(chunk)))
+                        curuptedData= True
+                splitPaths = paths.split(("/"))
+                hourDir = "%s/%s/%s" % (splitPaths[-3], splitPaths[-2], splitPaths("/")[-1])
+                chunkDir = os.path.join(CHUNK_DATA_PATH, hourDir)
+                logger.info("moving file %s to %s" % (str(chunk), chunkDir))
+                if not os.path.isdir(chunkDir):
+                    os.makedirs(chunkDir)
+                shutil.move(os.path.join(paths, chunk), os.path.join(chunkDir, chunk))
+
+
+
+
+
+
+
+    #Start this part for recursive checking, disabled for checking
+    #threading.Timer(TIME_DELAY, cleanUp).start()
+
+
+def main():
+
+    global logger
+
+    logger.info("Starting clean up")
+
+    cleanUp()
+
+    #threading.Timer(TIME_DELAY, main).start()
 
 
 #Main Entry Point
@@ -79,4 +235,5 @@ if __name__ == '__main__':
     print "Starting the file manager script"
 
     loggerInit()
+
     main()
