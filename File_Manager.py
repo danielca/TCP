@@ -201,8 +201,6 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
 def cleanUp():
     global logger
     logger.info("Starting clean up")
-    print "starting"
-    print RAW_FILE_PATH
 
     Chan1 = []
     Chan2 = []
