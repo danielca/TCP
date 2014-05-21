@@ -15,27 +15,32 @@
     the FPGA->WiFly Module.
 
  Changelog:
-   0.9.0:
+   1.9.0:
      -initial release
 
-   0.9.1:
+   1.9.1:
      -Server now starts file_manager.py to combine the files
      -NOTE: This version is still untested
 
-   0.10.0:
+   1.10.0:
      -Removed combining of files
      -Removed file_manager.py
      -Re-Structure to be less dependent on closing of connections.
      -Removed milliseconds from file name
      -NOTE: Still untested
 
-   0.10.1:
-    -Added test directories for testing on a macbook
-    -fixed bug for crashing with log files directories
+   1.10.1:
+     -Added test directories for testing on a macbook
+     -fixed bug for crashing with log files directories
 
    2.0.0:
-    -Tested server
-    -Bug fixes
+     -Tested server
+     -Bug fixes
+
+   2.0.1:
+     -Now saves everything to a single directory, and leaves for file_manager.py to sort out the directory tree
+     -Removed hardcoded number of chunks, can now be found in the header
+     -Will be compatible with software version 2.1+
 
 
  TODO:
@@ -67,9 +72,9 @@ TCP_PORT = 26000
 BUFFER_SIZE = 1024
 LOG_PATH = "/logs"
 LOG_FILENAME = "above_vlf_acquire_server.log"
-ROOT_FILE_PATH = "/data/vlf/testServer" #Sever Root Path
+ROOT_FILE_PATH = "/data/vlf/Server" #Sever Root Path
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
-TOTAL_CHUNKS_PER_FILE = 1
+#TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
 threadCount = 0
@@ -171,9 +176,10 @@ def writeDataToFile(data, hsk):
     chunkNumber = hskSplit[2]
     siteUID = hskSplit[6]
     deviceUID = hskSplit[8]
-    filePath = "%s/%s/%s/%s/%s_%s/ut%s" % (ROOT_FILE_PATH, year, month, day, siteUID, deviceUID, hour)
+    filePath = ROOT_FILE_PATH
+    #filePath = "%s/%s/%s/%s/%s_%s/ut%s" % (ROOT_FILE_PATH, year, month, day, siteUID, deviceUID, hour)
     filename = "%s%s%s_%s%s%s_%s_%s_%02d.chunk.dat" % (year, month, day, hour, minute, second, siteUID, deviceUID, int(chunkNumber))
-    fullFilename = "%s/%s" % (filePath, filename)
+    fullFilename = os.path.join(filePath, filename)
     
     # create path for destination filename if it doesn't exist
     if not (os.path.exists(filePath)):
@@ -286,6 +292,7 @@ def processConnection(threadNum, conn, addr, socket):
                 chunkNumber = hskSplit[2]
                 siteUID = hskSplit[6]
                 deviceUID = hskSplit[8]
+                TotalChunks =hskSplit[19]
                 
                 # check cases to see if we need a resend request
                 if (day == "" or month == "" or year == YEAR_PREFIX or hour == "" or minute == "" or second == "" or milliseconds == "" or chunkNumber == "" or siteUID == "" or deviceUID == ""):  # check we got all hsk values we need
@@ -325,8 +332,8 @@ def processConnection(threadNum, conn, addr, socket):
             fileChunksReceived += 1
             
             # check if it is time to build the full file out of all the chunks
-            logger.info("Received %d/%d chunks" % (fileChunksReceived, TOTAL_CHUNKS_PER_FILE))
-            if (fileChunksReceived == TOTAL_CHUNKS_PER_FILE):
+            logger.info("Received %d/%d chunks" % (fileChunksReceived, TotalChunks))
+            if (fileChunksReceived == TotalChunks):
                 fileChunksReceived = 0
         logger.debug("++++++++++++++")
     except SocketError, e:
