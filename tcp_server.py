@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.0.0
+ Version: 2.1.0
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -42,10 +42,17 @@
      -Removed hardcoded number of chunks, can now be found in the header
      -Will be compatible with software version 2.1+
 
+   2.1.0:
+     -Re-structured to allow for buffering of packets
+     -Split while loops into ones receiving control strings, and ones receiving data
+     -updated header strings for 2.1 software
+     -Thread numbers now sent to logger statements to make it easier when multiple connections are received
+
 
  TODO:
-  -Examine hard coded number of files
-  -look into damon processes
+   -Examine hard coded number of files
+   -look into damon processes
+   -look at ways to keep track of IP addresses
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -72,7 +79,7 @@ TCP_PORT = 26000
 BUFFER_SIZE = 1024
 LOG_PATH = "/logs"
 LOG_FILENAME = "above_vlf_acquire_server.log"
-ROOT_FILE_PATH = "/data/vlf/Server" #Sever Root Path
+ROOT_FILE_PATH = "/data/vlf/testServer" #Sever Root Path
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 #TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
@@ -90,7 +97,7 @@ LOGFILE_MAX_BYTES = 1024000 * 100   #100MB
 LOGFILE_BACKUP_COUNT = 5
 
 # control strings
-CONTROL_CLOSE = "[CTRL:close]"
+CONTROL_CLOSE = "[CTRL:close]\0"
 CONTROL_HSK_REQUEST = "[CTRL:reqhsk]\0"
 CONTROL_HSK_RECEIVE = "[CTRL:hskvals]"
 CONTROL_DATA_START = "[CTRL:dstart]"
@@ -100,6 +107,9 @@ CONTROL_DATA_RESPONSE_OK = "[CTRL:d-ok]\0"
 CONTROL_DATA_RESPONSE_NOK = "[CTRL:d-resend]\0"
 CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
+
+PACKET_SIZE_ERROR = 10000
+DATA_STOP_KEY = "Data_Stop"
 
 
 ##################################
@@ -204,6 +214,125 @@ def writeDataToFile(data, hsk):
     # return
     return 0
 
+
+def dataConnection(theadNum, conn, addr, socket, packetNo):
+    global logger
+    receivedBytes = 0
+    data = ""
+    header = ""
+    packet = ""
+
+    recved = False
+    dataFiles = 0
+    day = ""
+    month = ""
+    year = ""
+    hour = ""
+    minute = ""
+    second = ""
+    milliseconds = ""
+    chunkNumber = ""
+    siteUID = ""
+    deviceUID = ""
+    TotalChunks = ""
+    fileSize = ""
+    StartSize = ""
+    while 1:
+        packetBuff = conn.recv(BUFFER_SIZE)
+        packet += packetBuff
+        packetNo += 1
+        logger.info("THREAD-%s: Received packet %d (%d Bytes)" % (str(theadNum), packetNo, len(packetBuff)))
+
+        #Check if packet is empty, or is greater than anything we would expect
+        if packetBuff == "":
+            logger.warning("THREAD-%s: Connection unexpectedly closed, closing connection" % str(theadNum))
+            return True
+        if len(packet) < PACKET_SIZE_ERROR:
+            logger.warning("THREAD-%s: packet is oddly large" % str(theadNum))
+            conn.send(CONTROL_CLOSE)
+            return False
+
+        if packet.startswith(CONTROL_HSK_RECEIVE):
+            dataFiles += 1
+            header += packet[len(CONTROL_HSK_RECEIVE):]
+            while 1:
+                chars = conn.recv(BUFFER_SIZE)
+                header += chars
+                packetNo += 1
+                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(theadNum), packetNo, sys.getsizeof(chars)))
+                if header.endswith("}"):
+
+                    try:
+                        hskSplit = header[1:-1].split(",")
+                        day = hskSplit[0][:2]
+                        month = hskSplit[0][2:4]
+                        year = YEAR_PREFIX + hskSplit[0][4:]
+                        hour = hskSplit[1][:2]
+                        minute = hskSplit[1][2:4]
+                        second = hskSplit[1][4:6]
+                        milliseconds = hskSplit[1][7:]
+                        chunkNumber = hskSplit[2]
+                        siteUID = hskSplit[6]
+                        deviceUID = hskSplit[8]
+                        fileSize = hskSplit[16]
+                        TotalChunks =hskSplit[17]
+                        packet = ""
+                        conn.send(CONTROL_DATA_REQUEST)
+                    except IndexError:
+                        logger.warning("THREAD-%s: Could not split header file, atempting resend" % str(theadNum))
+                        conn.send(CONTROL_DATA_RESPONSE_NOK)
+                        header = ""
+
+                    break
+                elif chars == "":
+                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(theadNum))
+                    return True
+
+        if packet.startswith(DATA_STOP_KEY):
+            data += packet
+            buff = ""
+            while 1:
+                buff = conn.recv(BUFFER_SIZE)
+                packetNo += 1
+                data += buff
+                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(theadNum), packetNo,
+                                                                              sys.getsizeof(buff)))
+                if data.endswith("Data_Stop"):
+                    conn.send(CONTROL_DATA_RESPONSE_OK)
+                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(theadNum), str(chunkNumber),
+                                                                             str(TotalChunks)))
+                    break
+                if buff == "":
+                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(theadNum))
+                    return False
+                if sys.getsizeof(data) < PACKET_SIZE_ERROR:
+                    logger.warning("THREAD-%s: Unexpectedly large file size" % theadNum)
+                    recordChunkFailure(header, chunkNumber)
+                    return False
+
+            if len(data) - len(DATA_STOP_KEY) != fileSize:
+                logger.warning("THREAD-%s: file does not contain the right data size, sending error response" %
+                               str(theadNum))
+                #conn.send(CONTROL_DATA_RESPONSE_NOK)
+                header = ""
+                packet = ""
+                data = ""
+            logger.info("THREAD-%s: writing data to file" % str(theadNum))
+            writeDataToFile(data, header)
+            header = ""
+            packet = ""
+            data = ""
+
+        if packet.startswith(CONTROL_CLOSE):
+            logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(theadNum), str(dataFiles),
+                                                                                   str(TotalChunks)))
+            return True
+
+
+
+
+
+
 #################################
 # Process the connection
 #################################
@@ -212,6 +341,8 @@ def processConnection(threadNum, conn, addr, socket):
     global logger
     global threadCount
     global fileChunksReceived
+    global packet
+    #packet = ""
     logger.info("THREAD-%02d: New connection from: %s:%d" % (threadNum, addr[0], addr[1]))
     socket.settimeout(SOCKET_TIMEOUT_ON_CONNECTION)
     
@@ -227,17 +358,59 @@ def processConnection(threadNum, conn, addr, socket):
         
         # while there is data coming in
         while 1:
-            packet = conn.recv(BUFFER_SIZE)
+            chars = conn.recv(BUFFER_SIZE)
+            packetCount += 1
+            logger.info("THREAD-%s: Received packet of size %d" % (str(threadNum), len(chars)))
+            packet += chars
+            if packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE):
+                conn.send(CONTROL_WAKEUP_CALL_SEND)
+                logger.info("THREAD-%s: Received wakeup call: '%s' and sending response '%s'" % (str(threadNum),
+                                                                                                 packet,
+                                                                                                 CONTROL_WAKEUP_CALL_SEND))
+                writeFileFlag = False
+                wakeupWait = False
+                break
+            if len(packet) < PACKET_SIZE_ERROR:
+                logger.warning("THREAD-%s: Packet length is oddly large, closing connection" % str(threadNum))
+                CloseConnection = True
+                break
+            if not CloseConnection:
+                logger.warning("THREAD-%s: Sending error message" % str(threadNum))
+
+
+
+
+        while 1:
+            chars = conn.recv(BUFFER_SIZE)
+            packet += chars
+            if chars == "":
+                CloseConnection = True
+                logger.info("THREAD-%s: Received a blank packet, will close connection" % str(threadNum))
+                break
+                packet = packet[:-1]
             if (packet.startswith(CONTROL_CLOSE)):
-                logger.info("Recieved close connection")
+                logger.info("THREAD-%s: Recieved close connection" % str(threadNum))
                 CloseConnection= True
                 break #connection close request
+            elif (packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE)):
+                conn.send(CONTROL_WAKEUP_CALL_SEND)
+                logger.info("THREAD-%s: Received wakeup call: '%s' and sending response '%s'" % (str(threadNum),
+                                                                                                 packet,
+                                                                                                 CONTROL_WAKEUP_CALL_SEND))
+                writeFileFlag = False
+                wakeupWait = False
+                continue
+
+
+
+            """
 
             if (wakeupWait == True or dataReceivedFlag == True):  # will wait for an empty packet from the FPGA to signal that it has remotely closed the connection
-                if not packet: 
+                if not packet:
                     break  # empty packet
 
             elif (packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE)):
+                print "working"
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
                 logger.info("Received wakeup call: '%s' and sending response '%s'" % (packet, CONTROL_WAKEUP_CALL_SEND))
                 writeFileFlag = False
@@ -260,7 +433,8 @@ def processConnection(threadNum, conn, addr, socket):
                 dataPacketInfo.append([len(packet), datetime.datetime.now().strftime("%s")])
                 packetCount += 1
                 logger.debug("%d (%d bytes)" % (packetCount, len(packet)))
-                if not packet: 
+                if not packet:
+                    CloseConnection = True
                     break  # empty packet
 
                 data += packet
@@ -269,7 +443,11 @@ def processConnection(threadNum, conn, addr, socket):
                     dataReceivedFlag = True
                     CloseConnection = True
                     break
-                    
+            """
+
+
+
+        """
         # set and check the total chunk size that we expect (information needed is in the HSK)
         if (dataReceivedFlag == True):
             try:
@@ -280,7 +458,6 @@ def processConnection(threadNum, conn, addr, socket):
                 
                 # set expected chunk size
                 expectedChunkSize = int(dataBytes) + int(startStringBytes) + int(stopStringBytes)
-                print expectedChunkSize, int(startStringBytes), int(stopStringBytes)
                 # set hsk values to make sure that we got them all
                 day = hskSplit[0][:2]
                 month = hskSplit[0][2:4]
@@ -301,7 +478,6 @@ def processConnection(threadNum, conn, addr, socket):
                     logger.info("Chunk received complete (%d bytes, %d packets), responding with success control" % (expectedChunkSize, packetCount))
                     conn.send(CONTROL_DATA_RESPONSE_OK)
                 else:
-                    print len(data), expectedChunkSize
                     logger.warning("Chunk received incomplete (%d bytes, %d packets), responding with failure control" % (len(data), packetCount))
                     recordChunkFailure(hsk, fileChunksReceived)
                     conn.send(CONTROL_DATA_RESPONSE_NOK)
@@ -321,28 +497,30 @@ def processConnection(threadNum, conn, addr, socket):
                 conn.close()
                 threadCount -= 1
                 return 0
-        
+        """
+
         # close connection
         if CloseConnection:
-            logger.info("Safely closing connection")
+            logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
             conn.close()
-        if (writeFileFlag == True):
-            # write data
-            ret = writeDataToFile(data, hsk)
-            fileChunksReceived += 1
+            packet = ""
+        #if writeFileFlag:
+        #    # write data
+        #    ret = writeDataToFile(data, hsk)
+        #    fileChunksReceived += 1
             
             # check if it is time to build the full file out of all the chunks
-            logger.info("Received %d/%d chunks" % (fileChunksReceived, TotalChunks))
-            if (fileChunksReceived == TotalChunks):
-                fileChunksReceived = 0
+        #    logger.info("Received %d/%d chunks" % (fileChunksReceived, TotalChunks))
+        #    if (fileChunksReceived == TotalChunks):
+        #        fileChunksReceived = 0
         logger.debug("++++++++++++++")
     except SocketError, e:
-        logger.error("Socket error: " + str(e))
+        logger.error("THREAD-%s: Socket error: %s" % (str(threadNum), str(e)))
         try:
             conn.close()
-            logger.info("Safely closed connection")
+            logger.info("THREAD-%s: Safely closed connection" % str(threadNum))
         except Exception, e:
-            logger.error("Error closing connection after socket error")
+            logger.error("THREAD-%s: Error closing connection after socket error" % str(threadNum))
         logger.debug("++++++++++++++")
         
         # return
@@ -364,6 +542,8 @@ def main():
     # initialization routines
     global logger
     global threadCount
+    global packet
+    packet = ""
     initLogging()
     
     # bind and listen on the socket
