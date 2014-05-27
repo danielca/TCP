@@ -39,6 +39,7 @@
 
 
  TODO:
+   -DOUBLE CHECK 2.1 HEADER, IT HAS CHANGED
    -Decide on error handling
    -Add in directory for malformed Files
    -send data to RTEMP
@@ -82,6 +83,10 @@ logger = None
 
 #Time from file writen to be found corrupted if the full set is not available
 CuruptedTime = 3600 #seconds
+
+#RTEMP UDP Info
+RTEMP_IP = "196.169.1.1"
+RTEMP_PORT = 2500
 
 
 def loggerInit():
@@ -304,6 +309,9 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
         combinedFile.write("Data_End")
     logger.info("Done writing %s" % fileName)
 
+def sendToRTEMP(Header):
+    print "Placeholder"
+
 
 def cleanUp():
     global logger
@@ -357,8 +365,9 @@ def cleanUp():
                 if curuptedData:
                     logger.warning("Invalid file %s" % (str(chunk)))
                     logger.info("moving file %s to %s" % (str(chunk), os.path.join(ERROR_PATH, chunkDir)))
+                    if not os.path.isdir(os.path.join(ERROR_PATH, chunkDir)):
+                        os.makedirs(os.path.join(ERROR_PATH, chunkDir))
                     shutil.move(os.path.join(paths, chunk), os.path.join(ERROR_PATH, chunkDir, chunk))
-                    curuptedData = True
                     Full_File_Name = "%s%s_%s%s" % (file_name, "full_file", str(CuruptedFiles), ".dat")
                     Full_File_Path = os.path.join(FULL_DATA_PATH, siteID, hourDir)
                     CuruptedFiles += 1
@@ -366,6 +375,7 @@ def cleanUp():
                     Chan1 = []
                     Chan2 = []
                     Headers = []
+                    continue
 
 
                 if not os.path.isdir(chunkDir):
@@ -385,7 +395,9 @@ def cleanUp():
             if not os.path.isdir(Full_File_Path):
                 os.makedirs(Full_File_Path)
             logger.info("Creating combined file")
-            fileCombination(Chan1, Chan2, Headers[0], Full_File_Name, Full_File_Path)
+
+            if len(Chan1) > 0:
+                fileCombination(Chan1, Chan2, Headers[0], Full_File_Name, Full_File_Path)
 
 
     #Start this part for recursive checking, disabled for checking
