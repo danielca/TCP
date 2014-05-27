@@ -16,8 +16,8 @@
     Cleanup of these files will be handled by other processes.
 
  Directions:
-    To start the tcp server simply use the command ./tcp_server.py start
-    Similarly to stop the server use ./tcp_server.py stop
+    To start the server, it is recommended that nohup be used to ensure the server will run even after any terminal
+    sessions have stopped. An example: "nohup ./tcp_server.py"
 
  Changelog:
    1.9.0:
@@ -27,22 +27,22 @@
      -Server now starts file_manager.py to combine the files
      -NOTE: This version is still untested
 
-   1.10.0:
+   2.0.0:
      -Removed combining of files
      -Removed file_manager.py
      -Re-Structure to be less dependent on closing of connections.
      -Removed milliseconds from file name
      -NOTE: Still untested
 
-   1.10.1:
+   2.0.1:
      -Added test directories for testing on a macbook
      -fixed bug for crashing with log files directories
 
-   2.0.0:
+   2.0.2:
      -Tested server
      -Bug fixes
 
-   2.0.1:
+   2.0.3:
      -Now saves everything to a single directory, and leaves for file_manager.py to sort out the directory tree
      -Removed hardcoded number of chunks, can now be found in the header
      -Will be compatible with software version 2.1+
@@ -54,8 +54,7 @@
      -Thread numbers now sent to logger statements to make it easier when multiple connections are received
 
    2.1.1:
-     -Added Deaemon to ensure the server won't be killed
-     -Added documentation about the start and stop command
+     -
 
 
  TODO:
@@ -81,24 +80,6 @@ import logging.handlers
 from daemon import runner
 import subprocess
 from threading import Thread
-
-
-##################
-#Class to handle
-#the start of the
-#Deaemon process
-##################
-class ServerDeaemon():
-    def __init__(self):
-        self.stdin_path = '/dev/null'
-        self.stdout_path = '/dev/tty'
-        self.stderr_path = '/dev/tty'
-        self.pidfile_path =  '/tmp/tcp_server.pid'
-        self.pidfile_timeout = 5
-
-    def run(self):
-        while True:
-            main()
 
 
 ################
@@ -575,6 +556,7 @@ def main():
     global logger
     global threadCount
     global packet
+    initLogging()
     packet = ""
 
     # bind and listen on the socket
@@ -616,12 +598,4 @@ def main():
 
 # main entry point
 if (__name__ == "__main__"):
-    global logger
-    initLogging()
-
-    logger.info("Starting Deameon.....")
-
-    ServerStart = ServerDeaemon()
-    DeaemonRunner = runner.DaemonRunner(ServerStart)
-    DeaemonRunner.do_action()
-    #main()
+    main()
