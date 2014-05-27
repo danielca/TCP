@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.0
+ Version: 2.1.1
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -11,8 +11,13 @@
  Edited: 2014/05/06
 
  Description:
-    TCP Server to respond to data file transmissions from
-    the FPGA->WiFly Module.
+    TCP Server for the ABOVE VLF Array. This server handles the incoming data from the instruments in the
+    field. These files are then saved to a dump directory.
+    Cleanup of these files will be handled by other processes.
+
+ Directions:
+    To start the tcp server simply use the command ./tcp_server.py start
+    Similarly to stop the server use ./tcp_server.py stop
 
  Changelog:
    1.9.0:
@@ -48,11 +53,15 @@
      -updated header strings for 2.1 software
      -Thread numbers now sent to logger statements to make it easier when multiple connections are received
 
+   2.1.1:
+     -Added Deaemon to ensure the server won't be killed
+     -Added documentation about the start and stop command
+
 
  TODO:
    -Examine hard coded number of files
-   -look into damon processes
    -look at ways to keep track of IP addresses
+   -Test server
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -69,8 +78,32 @@ from logging import root
 import thread
 import logging
 import logging.handlers
+from daemon import runner
 import subprocess
 from threading import Thread
+
+
+##################
+#Class to handle
+#the start of the
+#Deaemon process
+##################
+class ServerDeaemon():
+    def __init__(self):
+        self.stdin_path = '/dev/null'
+        self.stdout_path = '/dev/tty'
+        self.stderr_path = '/dev/tty'
+        self.pidfile_path =  '/tmp/tcp_server.pid'
+        self.pidfile_timeout = 5
+
+    def run(self):
+        while True:
+            main()
+
+
+################
+#Constants
+################
 
 # globals
 TCP_IP = "136.159.51.230" #Sever IP
@@ -108,6 +141,7 @@ CONTROL_DATA_RESPONSE_NOK = "[CTRL:d-resend]\0"
 CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
+#miscilanious
 PACKET_SIZE_ERROR = 10000
 DATA_STOP_KEY = "Data_Stop"
 
@@ -214,7 +248,10 @@ def writeDataToFile(data, hsk):
     # return
     return 0
 
-
+##################################
+#Handle the connection after the
+# control awake command
+##################################
 def dataConnection(theadNum, conn, addr, socket, packetNo):
     global logger
     receivedBytes = 0
@@ -327,11 +364,6 @@ def dataConnection(theadNum, conn, addr, socket, packetNo):
             logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(theadNum), str(dataFiles),
                                                                                    str(TotalChunks)))
             return True
-
-
-
-
-
 
 #################################
 # Process the connection
@@ -544,13 +576,20 @@ def main():
     global threadCount
     global packet
     packet = ""
-    initLogging()
-    
+
     # bind and listen on the socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # SOCK_STREAM = TCP, SOCK_DGRAM = UDP
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.settimeout(SOCKET_TIMEOUT_NORMAL)
-    s.bind((TCP_IP, TCP_PORT))
+    try:
+        s.bind((TCP_IP, TCP_PORT))
+    except SocketError, e:
+        logger.warning("Socket error, unable to start server. %s" % str(e))
+        print "************************************************"
+        print " Unable to start server, program will now exit"
+        print "************************************************"
+        return
+
     s.listen(CONNECTION_BACKLOG)  # listen with buffer of n connections
     logger.info("Listening on port %d (%d connection backlog)... " % (TCP_PORT, CONNECTION_BACKLOG))
     logger.info("++++++++++++++++++++++++++++++++++++++++")
@@ -577,4 +616,12 @@ def main():
 
 # main entry point
 if (__name__ == "__main__"):
-    main()
+    global logger
+    initLogging()
+
+    logger.info("Starting Deameon.....")
+
+    ServerStart = ServerDeaemon()
+    DeaemonRunner = runner.DaemonRunner(ServerStart)
+    DeaemonRunner.do_action()
+    #main()
