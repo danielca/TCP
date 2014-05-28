@@ -12,7 +12,7 @@ MESSAGE = "[CTRL:wakeup]"
 End_Message = "[CTRL:close]"
 CONTROL_DATA_RESPONSE = "[CTRL:d-ok]"
 #Header for falsified data
-fheader = "[CTRL:hskvals]{150514,233025.004,1,G3,2.0,20140509a,test,3,abovetest,151,145,167,255,0,-47,667,220,10,9}"
+fheader = "[CTRL:hskvals]{150514,233025.004,1,G3,2.1,20140509a,test,3,abovetest,151,145,167,255,0,-47,667,220,1}"
 
 #This is the falsified data created for tesing purposes
 fdata = 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
@@ -30,8 +30,6 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ipAddress, TCP_PORT))
 s.send(MESSAGE)
 data = s.recv(BUFFER_SIZE)
-s.close()
-
 
 #Opening connection for the information to be sent from the client to theserver
 #header first, then response message, sending false data string, then

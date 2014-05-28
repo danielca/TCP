@@ -88,6 +88,11 @@ CuruptedTime = 3600 #seconds
 RTEMP_IP = "196.169.1.1"
 RTEMP_PORT = 2500
 
+#Key Strings
+START_KEY = "Data_Start"
+END_KEY = "Data_Stop"
+START_KEY_LENGTH = len(START_KEY)
+END_KEY_LENGTH = len(END_KEY)
 
 def loggerInit():
     global logger
@@ -172,11 +177,11 @@ def unpackFile(path, fileName):
                 BoardTemp = header_contents[13]
                 WifiStrength = header_contents[14]
                 FileSize = 40000
-                StartKeyLength = 10
+                START_KEY_LENGTH = 10
                 EndKeyLength = 9
                 NumberOfChunks = 45
-                ExpectedStartKey = "Data_Start"
-                ExpectedEndKey = "Data_End "
+                END_KEY_LENGTH = "Data_Start"
+                END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
                 return None, None, None
@@ -199,11 +204,11 @@ def unpackFile(path, fileName):
                 WifiStrength = header_contents[14]
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
-                StartKeyLength = header_contents[17]
+                START_KEY_LENGTH = header_contents[17]
                 EndKeyLength = header_contents[18]
                 NumberOfChunks = 45
-                ExpectedStartKey = "Data_Start"
-                ExpectedEndKey = "Data_End "
+                END_KEY_LENGTH = "Data_Start"
+                END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
 
@@ -225,18 +230,14 @@ def unpackFile(path, fileName):
                 WifiStrength = header_contents[14]
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
-                StartKeyLength = header_contents[17]
-                EndKeyLength = header_contents[18]
-                NumberOfChunks = header_contents[19]
-                ExpectedStartKey = "Data_Start"
-                ExpectedEndKey = "Data_End "
+                NumberOfChunks = header_contents[17]
             except IndexError:
                 logger.warning("Unable to unpack header")
         else:
             logger.warning("Unknown software version")
 
-        startKey = contents.read(int(StartKeyLength))
-        if startKey == ExpectedStartKey:
+        startKey = contents.read(int(START_KEY_LENGTH))
+        if startKey == START_KEY:
             logger.info("Found start key for file "+fileName)
         else:
             logger.warning("No start key found " + fileName + " is corrupted")
@@ -254,7 +255,7 @@ def unpackFile(path, fileName):
             contents.close()
             return None, None, None
 
-    if endKey == ExpectedEndKey:
+    if endKey == END_KEY:
         logger.debug("Found end key ")
     else:
         logger.debug("No end key found in" + fileName)
