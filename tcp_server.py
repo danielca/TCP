@@ -83,6 +83,7 @@ import logging
 import logging.handlers
 import subprocess
 from threading import Thread
+import pickle
 
 
 ################
@@ -130,6 +131,10 @@ CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 PACKET_SIZE_ERROR = 256000 # 256KB
 DATA_STOP_KEY = "Data_Stop\0"
 THREAD_TIME_OUT = 900 #15 min
+DATA_RESEND_CUTOFF = 3
+
+#IP Dictionary
+IP_dict = {}
 
 
 ##################################
@@ -243,6 +248,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
 
     logger.info("THREAD-%s: Now starting to process the connection" % str(threadNum))
     receivedBytes = 0
+    dataResends = 0
     data = ""
     header = ""
     packet = ""
@@ -274,11 +280,11 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
         #Check if packet is empty, or is greater than anything we would expect
         if packetBuff == "":
             logger.warning("THREAD-%s: Connection unexpectedly closed, closing connection" % str(threadNum))
-            return True
+            return True, dataResends
         if len(packet) > PACKET_SIZE_ERROR:
             logger.warning("THREAD-%s: packet is oddly large while waiting for control string" % str(threadNum))
             conn.send(CONTROL_CLOSE)
-            return True
+            return True, dataResends
 
         if packet.startswith(CONTROL_HSK_RECEIVE):
             dataFiles += 1
@@ -289,7 +295,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
                                    str(threadNum), str(THREAD_TIME_OUT))
                     CloseConnection = True
-                    return True
+                    return True, dataResends
 
                 if header.endswith("}") or header.endswith("}\0"):
 
@@ -312,7 +318,13 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                         IncomingData = True
                     except IndexError:
                         logger.warning("THREAD-%s: Could not split header file, atempting resend" % str(threadNum))
+                        if dataResends > DATA_RESEND_CUTOFF:
+                            logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
+                                           (str(threadNum), dataResends))
+                            conn.send(CONTROL_CLOSE)
+                            return True, dataResends
                         conn.send(CONTROL_DATA_RESPONSE_NOK)
+                        dataResends += 1
                         header = ""
 
                     break
@@ -322,9 +334,31 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 header += chars
                 packetNo += 1
                 logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo, sys.getsizeof(chars)))
+                if siteUID in IP_dict.keys():
+                    knownIP = IP_dict.get(siteUID)
+                    currentIP = "%s:%s" % (addr[0], addr[1])
+                    if knownIP != currentIP:
+                        IP_dict[siteUID] = currentIP
+                        if not os.path.isfile(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl")):
+                            try:
+                                f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl"), 'w+')
+                                pickle.dump(IP_dict, f)
+                                f.close()
+                            except IOError, e:
+                                logger.warning("Unable to create dictionary file, error: %s" % str(e))
+                        try:
+                            f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl"), 'w')
+                            pickle.dump(IP_dict, f)
+                            f.close()
+                        except IOError, e:
+                            logger.warning("Unable to open dictionary file, error: %s" % str(e))
+
+
+                else:
+                    IP_dict[siteUID] = "%s:%s" % (addr[0], addr[1])
                 if chars == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
-                    return True
+                    return True, dataResends
 
         if IncomingData:
             data += packet
@@ -336,7 +370,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
                                    str(threadNum), str(THREAD_TIME_OUT))
                     CloseConnection = True
-                    return True
+                    return True, dataResends
                 buff = conn.recv(BUFFER_SIZE)
                 packetNo += 1
                 data += buff
@@ -349,7 +383,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     break
                 if buff == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
-                    return True
+                    return True, dataResends
                 #if sys.getsizeof(data) < PACKET_SIZE_ERROR:
                 #    logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
                 #                   threadNum)
@@ -359,7 +393,14 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
             if len(data) - sys.getsizeof(DATA_STOP_KEY) != fileSize:
                 logger.warning("THREAD-%s: file does not contain the right data size, sending error response" %
                                str(threadNum))
+                if dataResends > DATA_RESEND_CUTOFF:
+                            logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
+                                           (str(threadNum), dataResends))
+                            conn.send(CONTROL_CLOSE)
+                            return True, dataResends
                 conn.send(CONTROL_DATA_RESPONSE_NOK)
+                IncomingData = False
+                dataResends += 1
                 header = ""
                 packet = ""
                 data = ""
@@ -379,7 +420,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
             data = ""
             logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(threadNum), str(dataFiles),
                                                                                    str(TotalChunks)))
-            return True
+            return True, dataResends
 
 #################################
 # Process the connection
@@ -393,6 +434,7 @@ def processConnection(threadNum, conn, addr, socket):
     #packet = ""
     logger.info("THREAD-%02d: New connection from: %s:%d" % (threadNum, addr[0], addr[1]))
     socket.settimeout(SOCKET_TIMEOUT_ON_CONNECTION)
+    dataResends = 0
     
     try:
         data = ""
@@ -425,7 +467,8 @@ def processConnection(threadNum, conn, addr, socket):
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
                 logger.info("THREAD-%s: Received wakeup call: '%s' and sending response, starting data connection '%s'"
                             % (str(threadNum), packet, CONTROL_WAKEUP_CALL_SEND))
-                dataConnection(threadNum, conn, addr, socket, packetCount)
+                bool1, dataResend = dataConnection(threadNum, conn, addr, socket, packetCount)
+                dataResends += dataResend
                 writeFileFlag = False
                 wakeupWait = False
                 break
@@ -465,6 +508,7 @@ def processConnection(threadNum, conn, addr, socket):
         logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
         conn.close()
         packet = ""
+
         #if writeFileFlag:
         #    # write data
         #    ret = writeDataToFile(data, hsk)
@@ -483,14 +527,26 @@ def processConnection(threadNum, conn, addr, socket):
         except Exception, e:
             logger.error("THREAD-%s: Error closing connection after socket error" % str(threadNum))
         logger.debug("++++++++++++++")
-        
-        # return
+                # return
         socket.settimeout(SOCKET_TIMEOUT_NORMAL)
         threadCount -= 1
+        if dataResends > 0:
+            try:
+                f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w+')
+                f.write("%s,%s" % (str(datetime.datetime.utcnow()), str(dataResends)))
+            except IOError, e:
+                logger.warning("Unable to write to data resend, error: %s", str(e))
         return 1
         
     # return
     socket.settimeout(SOCKET_TIMEOUT_NORMAL)
+    if dataResends > 0:
+        try:
+            f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w+')
+            f.write("%s,%s" % (str(datetime.datetime.utcnow()), str(dataResends)))
+            f.close()
+        except IOError, e:
+            logger.warning("Unable to write to data resend, error: %s", str(e))
     threadCount -= 1
     return 0
 
