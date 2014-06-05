@@ -43,12 +43,18 @@
       -new directories is no longer depends on the old
       -Should now be backwards compatible
 
+    0.2.2:
+      -Now checks for dictionary file from server to send IP address to RTEMP
+      -Looks for DataResends to check the number of data resend requests in the last seconds, parameter RESEND_TIME
+
+
 
 
  TODO:
    -Decide on error handling
    -un-comment the timer function, commented for testing purposes
    -Deaemon process
+   -Uncomment the break statment for the time check
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -64,6 +70,7 @@ from datetime import datetime
 import sys
 import socket
 import time as Time
+import pickle
 
 
 #################
@@ -81,6 +88,7 @@ FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles" #Test Path
 #FULL_DATA_PATH = "/data/vlf_full_files" #server path
 #ERROR_PATH = "/data/vlf/MalformedFiles" #Server Path
 ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles" #test path
+ROOT_FILE_PATH = "/data/vlf/testServer"
 
 # logging strings
 LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs"
@@ -103,6 +111,10 @@ START_KEY = "Data_Start"
 END_KEY = "Data_Stop"
 START_KEY_LENGTH = len(START_KEY)
 END_KEY_LENGTH = len(END_KEY)
+
+#miscilanious
+IP_Dict = {'barr':"1.1.1:1"} #IP Dictionary, barr entry put in for testing purposes
+RESEND_TIME = 300 #Seconds for the number of resends to be noted
 
 def loggerInit():
     """
@@ -365,7 +377,7 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
         combinedFile.write("Data_End")
     logger.info("Done writing %s" % fileName)
 
-def sendToRTEMP(Header):
+def sendToRTEMP(Header, malformed_packets):
     """
     Responisble for sending health keeping information to the RTEMP server at the University of Calgary
     :param Header: Header contents, as a list
@@ -373,8 +385,6 @@ def sendToRTEMP(Header):
     """
     global logger
     global LAST_PACKET_TIMESTAMP
-
-    print "sending......."
 
     #extracts information
     timeStamp = datetime.utcnow()
@@ -401,10 +411,62 @@ def sendToRTEMP(Header):
             Time.sleep(10)
     LAST_PACKET_TIMESTAMP = current_time
 
+    #Loading the latest dictionary from the server, if it is not loadable, then the latest is being written to
+    #Else it a dummy variable is sent, this should only happen when testing on another computer, or just starting
+    #everything for the first time
+    try:
+        ips = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl"), 'r')
+        IP_Dict = pickle.load(ips)
+        IP_addr = IP_Dict[Header[6]]
+        ips.close()
+    except IOError, e:
+        logger.debug("Unable to load IP dictionary, error: %s" % str(e))
+        if len(IP_Dict) == 0:
+            IP_addr = "0.0.0:0"
+        else:
+            IP_addr = IP_Dict[Header[6]]
+
+    array = []
+    try:
+        f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'r')
+        contents = f.read()
+        contents = contents.split("\n")
+        if len(contents) > 0:
+            for part in contents:
+                part = part.split(",")
+                array.append(part)
+        else:
+            resends = 0
+        f.close()
+    except IOError, e:
+        logger.debug("Unable to open DataResends.txt, error: %s" % str(e))
+
+    if len(array) > 0:
+        resends = 0
+        for entry in reversed(array):
+            timeStamp = datetime(entry[0])
+            timeDiff = timeStamp - current_time
+            timeDiff = timeDiff.total_seconds()
+            if timeDiff < RESEND_TIME:
+                resends += entry[1]
+            else:
+                break
+    else:
+        resends = 0
+    try:
+        f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w')
+        f.write("")
+        f.close()
+    except IOError, e:
+        logger.debug("Unable to clear dataResends file, error: %s" % str(e))
+
+
     #Assembles the basic information required
-    #To change the data sent, simply change this string. Key values and data are seperated by a single space
-    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s" % (batt_temp, gps_fix, temp,
-                                                                                         V_batt, V_twelve, V_five, rssi)
+    #To change the data sent, simply change this string. Key values and data are separated by a single space
+    #Make sure you tell Darren as well
+    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s malformed_packets %s " \
+                   "number_of_resends %s" % (batt_temp, gps_fix, temp, V_batt, V_twelve, V_five, rssi, str(IP_addr),
+                                             str(malformed_packets), str(resends))
     #Find the size of the information
     packet_size = sys.getsizeof(RTEMP_packet)
 
@@ -412,7 +474,6 @@ def sendToRTEMP(Header):
     #Can be transmitted, the maximum packet size is set to 1024 Bytes.
     #If more information is needed, then the packets are queued appropriately
     if packet_size < MAX_PACKET_SIZE:
-        print "sending some more....."
         RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
                        "PACKET_QUEUE_LENGTH %s" % (timeStamp, version, project, site, device, date, time, str(1),
                                                    str(0))
@@ -501,13 +562,11 @@ def cleanUp():
                         if not os.path.exists(full_file_path):
                             os.makedirs(full_file_path)
                         fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
-                        #sendToRTEMP(Headers[0])
                         CuruptedFiles += 1
 
                         continue
 
-                    #else:
-                    #    sendToRTEMP(header)
+
 
                     hour = header[1][2:4]
                     year = "20%s" % header[0][4:6]
@@ -574,7 +633,7 @@ def cleanUp():
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
                     fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
-                    #sendToRTEMP(Headers[0])
+                    sendToRTEMP(Headers[0], CuruptedFiles)
 
     #Start this part for recursive checking, disabled for checking
     #threading.Timer(TIME_DELAY, cleanUp).start()
