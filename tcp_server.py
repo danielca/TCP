@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.1
+ Version: 2.1.2
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -57,11 +57,14 @@
      -Bug fixes
      -Data files will now be dumped into rawData directory
 
+   2.1.2:
+    -Added thread time out condition
+
 
  TODO:
-   -Examine hard coded number of files
    -look at ways to keep track of IP addresses
    -Test server
+   -Consider Deaemon
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -104,7 +107,7 @@ fileChunksReceived = 0
 logger = None
 
 # socket globals
-SOCKET_TIMEOUT_ON_CONNECTION = 30.0 
+SOCKET_TIMEOUT_ON_CONNECTION = 15.0
 SOCKET_TIMEOUT_NORMAL = None
 
 # logging strings
@@ -125,7 +128,8 @@ CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
 #miscilanious
 PACKET_SIZE_ERROR = 256000 # 256KB
-DATA_STOP_KEY = "Data_Stop"
+DATA_STOP_KEY = "Data_Stop\0"
+THREAD_TIME_OUT = 900 #15 min
 
 
 ##################################
@@ -234,8 +238,10 @@ def writeDataToFile(data, hsk):
 #Handle the connection after the
 # control awake command
 ##################################
-def dataConnection(theadNum, conn, addr, socket, packetNo):
+def dataConnection(threadNum, conn, addr, socket, packetNo):
     global logger
+
+    logger.info("THREAD-%s: Now starting to process the connection" % str(threadNum))
     receivedBytes = 0
     data = ""
     header = ""
@@ -256,33 +262,36 @@ def dataConnection(theadNum, conn, addr, socket, packetNo):
     TotalChunks = ""
     fileSize = ""
     StartSize = ""
+
+    IncomingData = False
+
     while 1:
         packetBuff = conn.recv(BUFFER_SIZE)
-        logger.info("Now have characters %s" % str(packetBuff))
         packet += packetBuff
         packetNo += 1
-        logger.info("THREAD-%s: Received packet %d (%d Bytes)" % (str(theadNum), packetNo, len(packetBuff)))
+        logger.info("THREAD-%s: Received packet %d (%d Bytes)" % (str(threadNum), packetNo, len(packetBuff)))
 
         #Check if packet is empty, or is greater than anything we would expect
         if packetBuff == "":
-            logger.warning("THREAD-%s: Connection unexpectedly closed, closing connection" % str(theadNum))
+            logger.warning("THREAD-%s: Connection unexpectedly closed, closing connection" % str(threadNum))
             return True
         if len(packet) > PACKET_SIZE_ERROR:
-            logger.warning("THREAD-%s: packet is oddly large while waiting for control string" % str(theadNum))
+            logger.warning("THREAD-%s: packet is oddly large while waiting for control string" % str(threadNum))
             conn.send(CONTROL_CLOSE)
             return True
 
         if packet.startswith(CONTROL_HSK_RECEIVE):
             dataFiles += 1
             header += packet[len(CONTROL_HSK_RECEIVE):]
+            timeout = time.time() + THREAD_TIME_OUT
             while 1:
-                packetBuff = ""
-                chars = conn.recv(BUFFER_SIZE)
-                logger.info("Received %s " % str(chars))
-                header += chars
-                packetNo += 1
-                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(theadNum), packetNo, sys.getsizeof(chars)))
-                if header.endswith("}"):
+                if time.time() > timeout:
+                    logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
+                                   str(threadNum), str(THREAD_TIME_OUT))
+                    CloseConnection = True
+                    return True
+
+                if header.endswith("}") or header.endswith("}\0"):
 
                     try:
                         hskSplit = header[1:-1].split(",")
@@ -300,48 +309,63 @@ def dataConnection(theadNum, conn, addr, socket, packetNo):
                         TotalChunks =hskSplit[17]
                         packet = ""
                         conn.send(CONTROL_DATA_REQUEST)
+                        IncomingData = True
                     except IndexError:
-                        logger.warning("THREAD-%s: Could not split header file, atempting resend" % str(theadNum))
+                        logger.warning("THREAD-%s: Could not split header file, atempting resend" % str(threadNum))
                         conn.send(CONTROL_DATA_RESPONSE_NOK)
                         header = ""
 
                     break
+                packetBuff = ""
+                chars = conn.recv(BUFFER_SIZE)
+                logger.info("Received %s " % str(chars))
+                header += chars
+                packetNo += 1
+                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo, sys.getsizeof(chars)))
                 if chars == "":
-                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(theadNum))
+                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
                     return True
 
-        if packet.startswith(DATA_STOP_KEY):
+        if IncomingData:
             data += packet
             buff = ""
             packetBuff = ""
+            timeout = time.time() + THREAD_TIME_OUT
             while 1:
+                if time.time() > timeout:
+                    logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
+                                   str(threadNum), str(THREAD_TIME_OUT))
+                    CloseConnection = True
+                    return True
                 buff = conn.recv(BUFFER_SIZE)
                 packetNo += 1
                 data += buff
-                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(theadNum), packetNo,
+                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo,
                                                                               sys.getsizeof(buff)))
-                if data.endswith("Data_Stop"):
-                    conn.send(CONTROL_DATA_RESPONSE_OK)
-                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(theadNum), str(chunkNumber),
+                if data.endswith(DATA_STOP_KEY):
+                    #conn.send(CONTROL_DATA_RESPONSE_OK)
+                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(threadNum), str(chunkNumber),
                                                                              str(TotalChunks)))
                     break
                 if buff == "":
-                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(theadNum))
+                    logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
                     return True
-                if sys.getsizeof(data) < PACKET_SIZE_ERROR:
-                    logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
-                                   theadNum)
-                    recordChunkFailure(header, chunkNumber)
-                    return True
+                #if sys.getsizeof(data) < PACKET_SIZE_ERROR:
+                #    logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
+                #                   threadNum)
+                #    recordChunkFailure(header, chunkNumber)
+                #    return True
 
-            if len(data) - len(DATA_STOP_KEY) != fileSize:
+            if len(data) - sys.getsizeof(DATA_STOP_KEY) != fileSize:
                 logger.warning("THREAD-%s: file does not contain the right data size, sending error response" %
-                               str(theadNum))
+                               str(threadNum))
                 conn.send(CONTROL_DATA_RESPONSE_NOK)
                 header = ""
                 packet = ""
                 data = ""
-            logger.info("THREAD-%s: writing data to file" % str(theadNum))
+            else:
+                conn.send(CONTROL_DATA_RESPONSE_OK)
+            logger.info("THREAD-%s: writing data to file" % str(threadNum))
             writeDataToFile(data, header)
             header = ""
             packet = ""
@@ -353,7 +377,7 @@ def dataConnection(theadNum, conn, addr, socket, packetNo):
             packet = ""
             packetBuff = ""
             data = ""
-            logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(theadNum), str(dataFiles),
+            logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(threadNum), str(dataFiles),
                                                                                    str(TotalChunks)))
             return True
 
@@ -380,7 +404,14 @@ def processConnection(threadNum, conn, addr, socket):
         dataReceivedFlag = False
         
         # while there is data coming in
+        timeout = time.time() + THREAD_TIME_OUT
+
         while 1:
+            if time.time() > timeout:
+                logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
+                               str(threadNum), str(THREAD_TIME_OUT))
+                CloseConnection = True
+                break
             chars = conn.recv(BUFFER_SIZE)
             logger.info("Received string %s" % str(chars))
             if chars == "":
@@ -392,9 +423,9 @@ def processConnection(threadNum, conn, addr, socket):
             packet += chars
             if packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE):
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
-                logger.info("THREAD-%s: Received wakeup call: '%s' and sending response '%s'" % (str(threadNum),
-                                                                                                 packet,
-                                                                                                 CONTROL_WAKEUP_CALL_SEND))
+                logger.info("THREAD-%s: Received wakeup call: '%s' and sending response, starting data connection '%s'"
+                            % (str(threadNum), packet, CONTROL_WAKEUP_CALL_SEND))
+                dataConnection(threadNum, conn, addr, socket, packetCount)
                 writeFileFlag = False
                 wakeupWait = False
                 break
@@ -403,7 +434,7 @@ def processConnection(threadNum, conn, addr, socket):
                 CloseConnection = True
                 break
 
-
+        """
         while 1:
             chars = conn.recv(BUFFER_SIZE)
             packet += chars
@@ -414,22 +445,26 @@ def processConnection(threadNum, conn, addr, socket):
                 packet = packet[:-1]
             if (packet.startswith(CONTROL_CLOSE)):
                 logger.info("THREAD-%s: Recieved close connection" % str(threadNum))
-                CloseConnection= True
+                CloseConnection = True
+                packet = ""
                 break #connection close request
             elif (packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE)):
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
+                packet = ""
+                CloseConnection = processConnection(threadNum, conn, addr, socket)
                 logger.info("THREAD-%s: Received wakeup call: '%s' and sending response '%s'" % (str(threadNum),
                                                                                                  packet,
                                                                                                  CONTROL_WAKEUP_CALL_SEND))
                 writeFileFlag = False
                 wakeupWait = False
-                continue
+                break
+        """
 
         # close connection
-        if CloseConnection:
-            logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
-            conn.close()
-            packet = ""
+        #if CloseConnection:
+        logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
+        conn.close()
+        packet = ""
         #if writeFileFlag:
         #    # write data
         #    ret = writeDataToFile(data, hsk)
