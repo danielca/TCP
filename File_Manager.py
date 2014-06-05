@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.2.0
+ Version: 0.2.1
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -16,34 +16,39 @@
 
  Changelog:
     0.0.1:
-      -N/A
+       -N/A
 
     0.0.2:
-      -Chunk files are now moved out of the main directory into a chunk directory
+       -Chunk files are now moved out of the main directory into a chunk directory
 
     0.0.3:
-      -Combined loggers between the unpacking routine and the rest of the file
+       -Combined loggers between the unpacking routine and the rest of the file
 
     0.1.0:
-      -Script now combines into a master data file, in the same binary format at as the chucnk files
-      -Tested, candidate to start on server
+       -Script now combines into a master data file, in the same binary format at as the chucnk files
+       -Tested, candidate to start on server
 
     0.1.1:
-      -Updated checking on header values
+       -Updated checking on header values
 
     0.2.0:
-      -Now handles corrupted, moves them into a separate directory
-      -Checks to make sure all present files are there before processing
-      -Handles abandoned file chunks
-      -NOTE: Requires Software 2.1+ running on the main board
+       -Now handles corrupted, moves them into a separate directory
+       -Checks to make sure all present files are there before processing
+       -Handles abandoned file chunks
+       -NOTE: Requires Software 2.1+ running on the main board
+
+    0.2.1:
+      -Added in RTEMP Packets
+      -Better Commenting
+      -new directories is no longer depends on the old
+      -Should now be backwards compatible
+
 
 
  TODO:
-   -DOUBLE CHECK 2.1 HEADER, IT HAS CHANGED
    -Decide on error handling
-   -Add in directory for malformed Files
-   -send data to RTEMP
    -un-comment the timer function, commented for testing purposes
+   -Deaemon process
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -56,6 +61,9 @@ import glob
 import struct
 import shutil
 from datetime import datetime
+import sys
+import socket
+import time as Time
 
 
 #################
@@ -71,8 +79,8 @@ CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks" #Test Path
 #CHUNK_DATA_PATH = "/data/vlf_chunks" #server path
 FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles" #Test Path
 #FULL_DATA_PATH = "/data/vlf_full_files" #server path
-ERROR_PATH = "/data/vlf/MalformedFiles"
-
+#ERROR_PATH = "/data/vlf/MalformedFiles" #Server Path
+ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles" #test path
 
 # logging strings
 LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs"
@@ -85,8 +93,10 @@ logger = None
 CuruptedTime = 3600 #seconds
 
 #RTEMP UDP Info
-RTEMP_IP = "196.169.1.1"
-RTEMP_PORT = 2500
+RTEMP_IP = "136.159.51.160"
+RTEMP_PORT = 25000
+MAX_PACKET_SIZE = 1024 #1Kb
+LAST_PACKET_TIMESTAMP = None
 
 #Key Strings
 START_KEY = "Data_Start"
@@ -95,6 +105,10 @@ START_KEY_LENGTH = len(START_KEY)
 END_KEY_LENGTH = len(END_KEY)
 
 def loggerInit():
+    """
+    loggerInit simply initializes the logger file that the log statements can be found in
+    :return: None
+    """
     global logger
 
 
@@ -119,6 +133,13 @@ def loggerInit():
 
 
 def unpackFile(path, fileName):
+    """
+    Unpacks the files from binary into integers as well as the header
+    :param path: The path to the file
+    :param fileName: the name of the file to be unpacked
+    :return: Header(as a list of strings), Channel 1(as a list of integers), Channel 2 (As a list of integers)
+    Please see project documentation to find the directions of Channel 1 and Channel 2
+    """
     global logger
 
     header = ""
@@ -128,10 +149,13 @@ def unpackFile(path, fileName):
     chan2 = []
     found = False
     logger.info("Starting file " + fileName)
+
+    #Checks if file exists first
     if not os.path.isfile(os.path.join(path, fileName)):
         logger.warning("could not find " + fileName)
         return None, None, None
 
+    #Quick check to make sure file is not really small and most likely corrupted
     filesize = os.path.getsize(os.path.join(path, fileName))
     if filesize < 1000:
         logger.warning(fileName + " is below 1000 bytes")
@@ -139,27 +163,26 @@ def unpackFile(path, fileName):
         contents = None
         return None, None, None
 
-
+    #Opens the file in a loop
     with open(os.path.join(path, fileName), 'rb') as contents:
 
 
         #looks for the closing bracket in the header of the file
-
         while found==False:
             char = contents.read(1)
             #print char
-            header = header + char
+            header += char
             if char == "}":
-                #Once the close bracket is found, the next 10 characters should be the start key
-                #startKey = contents.read(10)
                 found = True
 
-        #Removes the brackets, and extracts the software version
+        #Removes the brackets, splits into a list, and extracts the software version
         header = header[1:-1]
         header_contents = header.split(",")
         SoftwareVersion = header_contents[4]
 
         #Assembles information based on the software version.
+        #Please see the documentation for information regarding the headers
+        #When new SoftwareVersions are implimented, please update this script acordingly
         if SoftwareVersion == '1.3':
             try:
                 Date = header_contents[0]
@@ -178,9 +201,9 @@ def unpackFile(path, fileName):
                 WifiStrength = header_contents[14]
                 FileSize = 40000
                 START_KEY_LENGTH = 10
-                EndKeyLength = 9
+                END_KEY_LENGTH = 9
                 NumberOfChunks = 45
-                END_KEY_LENGTH = "Data_Start"
+                START_KEY = "Data_Start"
                 END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
@@ -205,9 +228,10 @@ def unpackFile(path, fileName):
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
                 START_KEY_LENGTH = header_contents[17]
-                EndKeyLength = header_contents[18]
+                END_KEY_LENGTH = header_contents[18]
                 NumberOfChunks = 45
-                END_KEY_LENGTH = "Data_Start"
+                START_KEY = "Data_Start"
+                #END_KEY_LENGTH = "Data_Start"
                 END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
@@ -231,35 +255,45 @@ def unpackFile(path, fileName):
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
                 NumberOfChunks = header_contents[17]
+                END_KEY = "Data_End"
+                END_KEY_LENGTH = len(END_KEY)
             except IndexError:
                 logger.warning("Unable to unpack header")
         else:
             logger.warning("Unknown software version")
 
-        startKey = contents.read(int(START_KEY_LENGTH))
-        if startKey == START_KEY:
-            logger.info("Found start key for file "+fileName)
-        else:
-            logger.warning("No start key found " + fileName + " is corrupted")
-            contents.close()
-            return None, None, None
+        #Reads the start key for data from software versions prior to 2.1, as of 2.1 the start key is no longer present
+        if float(SoftwareVersion) < 2.1:
+            startKey = contents.read(int(START_KEY_LENGTH))
+            if startKey == START_KEY:
+                logger.info("Found start key for file "+fileName)
+            else:
+                logger.warning("No start key found " + fileName + " is corrupted")
+                contents.close()
+                return None, None, None
+
         #Looks for the end key in the file
         try:
             logger.debug("Reading the data")
-            data = contents.read(int(FileSize))
+            #data = contents.read(int(FileSize))
+            data = contents.read()
+            endKey = data[int(-1 * int(END_KEY_LENGTH)):]
+            data = data[:int(-1 * int(END_KEY_LENGTH))]
             #endKey = data[len(data)-10:len(data)]
-            endKey = contents.read()
+            #endKey = contents.read()
         except IOError:
             logger.warning("IOE error trying to read the end key")
             endKey = None
             contents.close()
             return None, None, None
 
+    #Check the end key
     if endKey == END_KEY:
         logger.debug("Found end key ")
     else:
         logger.debug("No end key found in" + fileName)
-    #Unpacks the data from binary into signed ints
+
+    #Unpacks the data from binary into signed integer
     for i in range(0, len(data), 2):
         value = data[i:i+2]
         if len(value) == 2:
@@ -269,6 +303,7 @@ def unpackFile(path, fileName):
         else:
             break
     logger.debug("total points found is " + str(len(dataList)))
+
     #Splits data into two channels
     for j in range(0, len(dataList)):
         if j % 2 != 0:
@@ -277,9 +312,10 @@ def unpackFile(path, fileName):
                 #print("chan2 has a non 0 " + str(j))
         else:
             chan1.append(dataList[j])
-    #Checks to make sure both channels contain 10000 data points. If this is not true the file is curppted
+
+    #Checks to make sure both channels contain the right number data points. If this is not true the file is corrupted
     if len(chan2) != int(FileSize)/4:
-        logger.warning("Chanel 2 did not containg the right number of data points, " + fileName + " is corupted")
+        logger.warning("Chanel 2 did not contains the right number of data points, " + fileName + " is corrupted")
         contents.close()
         return None, None, None
     if len(chan1) != int(FileSize)/4:
@@ -291,6 +327,17 @@ def unpackFile(path, fileName):
 
 
 def fileCombination(Chan1, Chan2, Header, fileName, filePath):
+    """
+    Combines the file chunks into one master file
+    file format is the same as the file chunks, please refer to documentation
+    :param Chan1: Data from Channel 1, as a list
+    :param Chan2: Data from Channel 2, as a list
+    :param Header: Header information, as a list
+    :param fileName: The destination file name
+    :param filePath: The destination file path
+    :return: None
+    """
+
     global logger
 
     Data = []
@@ -299,114 +346,242 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
         Data.append(Chan1[i])
         Data.append(Chan2[i])
 
-    Header[16] = 4*len(Data)
+    softwareVersion = Header[4]
+
+    #edits the header entry for the file size
+    Header[16] = sys.getsizeof(Data)
     Header = ",".join(str(x) for x in Header)
 
     logger.info("writing single data file at %s" % (str(os.path.join(filePath, fileName))))
     with open(os.path.join(filePath, fileName), 'wb+') as combinedFile:
-        combinedFile.write("%s%s%s%s" % ("{", Header, "}", "Data_Start"))
+
+        if float(softwareVersion) < 2.1:
+            combinedFile.write("{%s}Data_Start" % Header)
+        else:
+            combinedFile.write("{%s}" % Header)
+
         for i in range(0, len(Data)):
             combinedFile.write(struct.pack('>h',  Data[i]))
         combinedFile.write("Data_End")
     logger.info("Done writing %s" % fileName)
 
 def sendToRTEMP(Header):
-    print "Placeholder"
+    """
+    Responisble for sending health keeping information to the RTEMP server at the University of Calgary
+    :param Header: Header contents, as a list
+    :return: None
+    """
+    global logger
+    global LAST_PACKET_TIMESTAMP
+
+    print "sending......."
+
+    #extracts information
+    timeStamp = datetime.utcnow()
+    version = "2.0"
+    project = "above"
+    site = Header[6]
+    device = Header[8]
+    date = Header[0]
+    time = Header[1]
+    batt_temp = Header[11]
+    gps_fix = Header[3]
+    temp = Header[12]
+    rssi = Header[14]
+    V_batt = Header[11]
+    V_twelve = Header[10]
+    V_five = Header[9]
+
+    current_time = datetime.utcnow()
+    #We can't send RTEMP packets to quickly, otherwise we can overload the server
+    if LAST_PACKET_TIMESTAMP is not None:
+        timeDiff = current_time - LAST_PACKET_TIMESTAMP
+        timeDiff = timeDiff.total_seconds()
+        if timeDiff < 10:
+            Time.sleep(10)
+    LAST_PACKET_TIMESTAMP = current_time
+
+    #Assembles the basic information required
+    #To change the data sent, simply change this string. Key values and data are seperated by a single space
+    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s" % (batt_temp, gps_fix, temp,
+                                                                                         V_batt, V_twelve, V_five, rssi)
+    #Find the size of the information
+    packet_size = sys.getsizeof(RTEMP_packet)
+
+    #There is a maximum packet size of ~1400 Bytes that can be in the UDP packet, to ensure that the entire packet
+    #Can be transmitted, the maximum packet size is set to 1024 Bytes.
+    #If more information is needed, then the packets are queued appropriately
+    if packet_size < MAX_PACKET_SIZE:
+        print "sending some more....."
+        RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
+                       "PACKET_QUEUE_LENGTH %s" % (timeStamp, version, project, site, device, date, time, str(1),
+                                                   str(0))
+        RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet)
+        logger.info("Sending RTEMP Packet")
+        try:
+            soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
+        except socket.error, e:
+            logger.warning("Unable to send RTEMP Packet, error: %s" % str(e))
+
+    else:
+        numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
+        for i in range(0, numberOfPackets):
+            RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
+                       "PACKET_QUEUE_LENGTH %s" % (timeStamp, version, project, site, device, date, time, str(1),
+                                                   str(numberOfPackets - i - 1))
+            RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
+            logger.info("Sending RTEMP packet %s/%s" % (str(i), str(numberOfPackets)))
+            try:
+                soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
+            except socket.error, e:
+                logger.warning("Unable to send RTEMP Packet, error: %s" % str(e))
+            #Ensures we don't overload the server
+            Time.sleep(10)
 
 
 def cleanUp():
+    """
+    This is the main portion of the script
+    First the files are found, starting in the RAW_FILE_PATH, this is a constant at the top of this file
+    Once file chunks are found, then we iterate through all of the chunks to combine the data, then the data
+    combination is called, and the chunks are moved.
+    If something is wrong with the files, then they are moved to a graveyard directory, specified at the top of the file
+    The timer function at the bottom of this function ensure a that this script is called periodically
+    :return: None
+    """
     global logger
     logger.info("Starting clean up")
-
     for paths, dirs, files in os.walk(RAW_FILE_PATH):
-        os.chdir(paths)
-        for f in glob.glob("*_00.chunk.dat"):
-            Chan1 = []
-            Chan2 = []
-            Headers = []
-            f = f.split("_")
-            file_name = "%s_%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3], f[4])
-            search_file = "%s%s" % (file_name, "*")
+            os.chdir(paths)
+            #search for the first chunk of the file
+            for f in glob.glob("*_00.chunk.dat"):
+                Chan1 = []
+                Chan2 = []
+                Headers = []
+                f = f.split("_")
+                #Get the base file name
+                file_name = "%s_%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3], f[4])
+                search_file = "%s*" % file_name
 
-            splitPaths = paths.split(("/"))
-            hourDir = "%s/%s/%s" % (splitPaths[-3], splitPaths[-2], splitPaths[-1])
-            chunkDir = os.path.join(CHUNK_DATA_PATH, hourDir)
-            siteID = ""
-            numberOfFiles = len(glob.glob(search_file))
-            CuruptedFiles = 0
-            for chunk in glob.glob(search_file):
-                curuptedData = False
-                logger.info("Unpacking file %s" % (str(chunk)))
-                header, data1, data2 = unpackFile(paths, chunk)
+                #Gets the directory information
+                splitPaths = paths.split("/")
+                print splitPaths
+                #hourDir = "%s/%s/%s" % (splitPaths[-3], splitPaths[-2], splitPaths[-1])
+                #chunkDir = os.path.join(CHUNK_DATA_PATH, hourDir)
+                siteID = ""
+                numberOfFiles = len(glob.glob(search_file))
+                CuruptedFiles = 0
+                #loops over the file chunks, and unpacks them
+                for chunk in glob.glob(search_file):
+                    curuptedData = False
+                    logger.info("Unpacking file %s" % (str(chunk)))
+                    header, data1, data2 = unpackFile(paths, chunk)
 
-                if numberOfFiles < header[19]:
-                    currentTime = datetime.utcnow()
-                    fileTime = header[1]
-                    fileDate = header[0]
-                    fileTimeStamp = datetime(year=int("20" + fileDate[4:6]), month=int(fileDate[2:4]),
-                                             day=int(fileDate[0:2]), hour=int(fileTime[0:2]), minute=int(fileTime[2:4]),
-                                             second=int(fileTime[4:6]))
-                    timeDiff = fileTimeStamp - currentTime
-                    timeDiff = timeDiff.total_seconds()
-                    if abs(timeDiff) > CuruptedTime:
-                        curuptedData = True
-                        logger.warning("Found file set with missing chunks, greater than an hour old")
+                    #If the file is curupted, then the file is moved to the graveyard and combine the data we have
+                    #into a larger chunk
+                    if header is None:
+                        logger.warning("Malformed file %s" % str(chunk))
+
+                        if not os.path.exists(ERROR_PATH):
+                            os.makedirs(ERROR_PATH)
+                        try:
+                            shutil.move(os.path.join(paths, chunk),
+                                            os.path.join(ERROR_PATH, chunk))
+                        except IOError, e:
+                            logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
+
+                        if len(Headers) == 0:
+                            continue
+
+                        full_file_path = os.path.join(FULL_DATA_PATH, hourDir, siteID)
+                        full_file_name = "%sFull_File-%s.dat" % (file_name, str(CuruptedFiles))
+                        logger.info("Combining Files due to corrupted file")
+                        if not os.path.exists(full_file_path):
+                            os.makedirs(full_file_path)
+                        fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                        #sendToRTEMP(Headers[0])
+                        CuruptedFiles += 1
+
+                        continue
+
+                    #else:
+                    #    sendToRTEMP(header)
+
+                    hour = header[1][2:4]
+                    year = "20%s" % header[0][4:6]
+                    month = header[0][2:4]
+                    day = header[0][0:2]
+                    site = header[6]
+                    hourDir = os.path.join(year, month, day, site, hour)
+
+                    if float(header[4]) < 2.1:
+                        expectedFiles = 45
                     else:
-                        break
+                        expectedFiles = header[17]
+                    #If not all 45 files are present, and the data has been sitting for longer than the time specified
+                    #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
+                    if numberOfFiles < expectedFiles:
+                        currentTime = datetime.utcnow()
+                        fileTime = header[1]
+                        fileDate = header[0]
+                        fileTimeStamp = datetime(year=int("20" + fileDate[4:6]), month=int(fileDate[2:4]),
+                                                 day=int(fileDate[0:2]), hour=int(fileTime[0:2]), minute=int(fileTime[2:4]),
+                                                 second=int(fileTime[4:6]))
+                        timeDiff = fileTimeStamp - currentTime
+                        timeDiff = timeDiff.total_seconds()
+                        if abs(timeDiff) > CuruptedTime:
+                            CuruptedFiles += 1
+                            curuptedData = True
+                            logger.warning("Found file set with missing chunks more than an hour old, moving file set")
+                            for curuptedChunk in glob.glob(search_file):
+                                if not os.path.exists(ERROR_PATH):
+                                    os.makedirs(ERROR_PATH)
 
-                if header is not None:
+                                try:
+                                    shutil.move(os.path.join(paths, curuptedChunk),
+                                            os.path.join(ERROR_PATH, curuptedChunk))
+                                except IOError, e:
+                                    logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
+                            #break
+
+
+
+
                     Headers.append(header)
                     for i in range(0, len(data1)):
                         Chan1.append(data1[i])
                         Chan2.append(data2[i])
+                    chunkPath = os.path.join(FULL_DATA_PATH, hourDir, "Chunks")
+                    if not os.path.exists(chunkPath):
+                        os.makedirs(chunkPath)
+                    try:
+                        shutil.move(os.path.join(paths, chunk), os.path.join(chunkPath, chunk))
+                    except IOError, e:
+                        logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
+
+                if CuruptedFiles == 0:
+                    full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
+                    full_file_name = "%sFull_Data.dat" % file_name
                 else:
-                    logger.warning("Malformed header")
-                    curuptedData = True
+                    full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
+                    full_file_name = "%sFull_Data-%s.dat" % (file_name, str(CuruptedFiles))
 
-                if curuptedData:
-                    logger.warning("Invalid file %s" % (str(chunk)))
-                    logger.info("moving file %s to %s" % (str(chunk), os.path.join(ERROR_PATH, chunkDir)))
-                    if not os.path.isdir(os.path.join(ERROR_PATH, chunkDir)):
-                        os.makedirs(os.path.join(ERROR_PATH, chunkDir))
-                    shutil.move(os.path.join(paths, chunk), os.path.join(ERROR_PATH, chunkDir, chunk))
-                    Full_File_Name = "%s%s_%s%s" % (file_name, "full_file", str(CuruptedFiles), ".dat")
-                    Full_File_Path = os.path.join(FULL_DATA_PATH, siteID, hourDir)
-                    CuruptedFiles += 1
-                    fileCombination(Chan1, Chan2, Headers[0], Full_File_Name, Full_File_Path)
-                    Chan1 = []
-                    Chan2 = []
-                    Headers = []
-                    continue
+                if not os.path.exists(full_file_path):
+                    os.makedirs(full_file_path)
 
-
-                if not os.path.isdir(chunkDir):
-                    logger.info("moving file %s to %s" % (str(chunk), chunkDir))
-                    os.makedirs(chunkDir)
-                if not curuptedData:
-                    shutil.move(os.path.join(paths, chunk), os.path.join(chunkDir, chunk))
-
-                if curuptedData == 0:
-                    Full_File_Name = "%s%s" % (file_name, "full_file.dat")
-                    Full_File_Path = os.path.join(FULL_DATA_PATH, siteID, hourDir)
-
-                else:
-                    Full_File_Name = "%s%s_%s%s" % (file_name, "full_file", str(CuruptedFiles), ".dat")
-                    Full_File_Path = os.path.join(FULL_DATA_PATH, siteID, hourDir)
-
-            if not os.path.isdir(Full_File_Path):
-                os.makedirs(Full_File_Path)
-            logger.info("Creating combined file")
-
-            if len(Chan1) > 0:
-                fileCombination(Chan1, Chan2, Headers[0], Full_File_Name, Full_File_Path)
-
+                if len(Headers) > 0:
+                    logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
+                    fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                    #sendToRTEMP(Headers[0])
 
     #Start this part for recursive checking, disabled for checking
     #threading.Timer(TIME_DELAY, cleanUp).start()
 
 
 def main():
-
+    #Main Function
     global logger
 
     logger.info("Starting initial clean up")
