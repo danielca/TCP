@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.2.1
+ Version: 0.2.3
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -47,8 +47,12 @@
       -Now checks for dictionary file from server to send IP address to RTEMP
       -Looks for DataResends to check the number of data resend requests in the last seconds, parameter RESEND_TIME
 
+    0.2.3:
+      -Added in an extra entry into the RTEMP package
 
 
+ Bug tracker:
+   -None
 
  TODO:
    -Decide on error handling
@@ -113,7 +117,7 @@ START_KEY_LENGTH = len(START_KEY)
 END_KEY_LENGTH = len(END_KEY)
 
 #miscilanious
-IP_Dict = {'barr':"1.1.1:1"} #IP Dictionary, barr entry put in for testing purposes
+IP_Dict = {'barr': "1.1.1:1"} #IP Dictionary, barr entry put in for testing purposes
 RESEND_TIME = 300 #Seconds for the number of resends to be noted
 
 def loggerInit():
@@ -401,6 +405,7 @@ def sendToRTEMP(Header, malformed_packets):
     V_batt = Header[11]
     V_twelve = Header[10]
     V_five = Header[9]
+    clock_speed = Header[13]
 
     current_time = datetime.utcnow()
     #We can't send RTEMP packets to quickly, otherwise we can overload the server
@@ -464,9 +469,9 @@ def sendToRTEMP(Header, malformed_packets):
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
-    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s malformed_packets %s " \
-                   "number_of_resends %s" % (batt_temp, gps_fix, temp, V_batt, V_twelve, V_five, rssi, str(IP_addr),
-                                             str(malformed_packets), str(resends))
+    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s mal_packets %s " \
+                   "no_resends %s clk_speed %s" % (batt_temp, gps_fix, temp, V_batt, V_twelve, V_five, rssi, str(IP_addr),
+                                             str(malformed_packets), str(resends), str(clock_speed))
     #Find the size of the information
     packet_size = sys.getsizeof(RTEMP_packet)
 

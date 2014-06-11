@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.2
+ Version: 2.1.4
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -58,13 +58,26 @@
      -Data files will now be dumped into rawData directory
 
    2.1.2:
-    -Added thread time out condition
+     -Added thread time out condition
+
+   2.1.3:
+     -Various bug fixes, server is now stable
+     -clean-up of various debug statements
+
+   2.1.4:
+     -Bug fixes
+     -More comments and descriptions
+     -Stress testing is still needed
 
 
  TODO:
    -look at ways to keep track of IP addresses
    -Test server
    -Consider Deaemon
+
+ BUG TRACKER:
+   -Possible bug with the file size and the system size of the data stop key, once we move to testing with binary
+    data this can be further tested
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -84,6 +97,7 @@ import logging.handlers
 import subprocess
 from threading import Thread
 import pickle
+import signal
 
 
 ################
@@ -98,7 +112,7 @@ BUFFER_SIZE = 1024
 LOG_PATH = "/logs"
 LOG_FILENAME = "above_vlf_acquire_server.log"
 ROOT_FILE_PATH = "/data/vlf/testServer" #Sever Root Path
-FILE_PATH = "/rawData"
+FILE_PATH = "rawData"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 #TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
@@ -127,10 +141,11 @@ CONTROL_DATA_RESPONSE_NOK = "[CTRL:d-resend]\0"
 CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
+
 #miscilanious
-PACKET_SIZE_ERROR = 256000 # 256KB
+PACKET_SIZE_ERROR = 25600000000000000 # 256KB
 DATA_STOP_KEY = "Data_Stop\0"
-THREAD_TIME_OUT = 900 #15 min
+CONECTION_TIMEOUT = 900 #15 min
 DATA_RESEND_CUTOFF = 3
 
 #IP Dictionary
@@ -141,6 +156,10 @@ IP_dict = {}
 # initialize the logging file
 ##################################
 def initLogging():
+    """
+    initLogging starts the logging file
+    :return:
+    """
     global logger
     print "\n-----------------"
     print "Initializing logging"
@@ -149,8 +168,10 @@ def initLogging():
     logger = logging.getLogger("ABOVE VLF Acquisition Logger")
     logger.setLevel(logging.DEBUG)
     LogPath = os.path.join(ROOT_FILE_PATH, "logs")
+    #check to see if the log path exists
     if not os.path.exists(LogPath):
         os.makedirs(LogPath)
+
     LOG_FILE = os.path.join(LogPath,LOG_FILENAME)
     handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUP_COUNT)
     formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s","%Y-%m-%d %H:%M:%S UTC")
@@ -173,6 +194,12 @@ def initLogging():
 # signal for a resend)
 ##################################
 def recordChunkFailure(hsk, chunkNumber):
+    """
+    Records the chunk faliure and requesets a resend, not currently used
+    :param hsk: Header contents
+    :param chunkNumber: Chunk number that failed
+    :return:
+    """
     #init
     global logger
   
@@ -195,35 +222,40 @@ def recordChunkFailure(hsk, chunkNumber):
 ##################################
 # Write the data to a file
 ##################################
-def writeDataToFile(data, hsk):
+def writeDataToFile(data, hsk, threadNum):
+    """
+    Writes the data taken in to a file
+    :param data: raw data from the transmition
+    :param hsk: Header information
+    :param threadNum: Thread number, used for logging purposes
+    :return:
+    """
     # init 
     global logger
-    
     # set filename
     hskSplit = hsk[1:-1].split(',')
-    day = hskSplit[0][:2]
-    month = hskSplit[0][2:4]
-    year = YEAR_PREFIX + hskSplit[0][4:]
-    hour = hskSplit[1][:2]
+    day = str(hskSplit[0][0:2])
+    month = str(hskSplit[0][2:4])
+    year = str(YEAR_PREFIX + hskSplit[0][4:6])
+    hour = hskSplit[1][0:2]
     minute = hskSplit[1][2:4]
     second = hskSplit[1][4:6]
-    milliseconds = hskSplit[1][7:]
     chunkNumber = hskSplit[2]
     siteUID = hskSplit[6]
     deviceUID = hskSplit[8]
-    filePath = os.path.join(ROOT_FILE_PATH, FILE_PATH)
-    #filePath = "%s/%s/%s/%s/%s_%s/ut%s" % (ROOT_FILE_PATH, year, month, day, siteUID, deviceUID, hour)
-    filename = "%s%s%s_%s%s%s_%s_%s_%02d.chunk.dat" % (year, month, day, hour, minute, second, siteUID, deviceUID, int(chunkNumber))
+    filePath = "%s/%s" % (ROOT_FILE_PATH, FILE_PATH)
+    filename = "%s%s%s_%s%s%s_%s_%s_%02d.chunk.dat" % (year, month, day, hour, minute, second, siteUID, deviceUID,
+                                                       int(chunkNumber))
     fullFilename = os.path.join(filePath, filename)
     
     # create path for destination filename if it doesn't exist
     if not (os.path.exists(filePath)):
-        logger.info("Creating directory path '%s'" % (filePath))
+        logger.info("THREAD-%s: Creating directory path '%s'" % (str(threadNum), filePath))
         os.makedirs(filePath, mode=0755)
 
     try:
         # init
-        fp = open(fullFilename, "wb")
+        fp = open(str(fullFilename), "wb")
         
         # write hsk and data
         fp.write(hsk)
@@ -231,9 +263,9 @@ def writeDataToFile(data, hsk):
         
         # close
         fp.close()
-        logger.info("Wrote data to individual chunk file '%s'" % (fullFilename))
+        logger.info("THREAD-%s: Wrote data to individual chunk file '%s'" % (str(threadNum), fullFilename))
     except IOError, e:
-        logger.error("IOError when writing data to individual chunk file: %s" % (str(e)))
+        logger.error("THREAD-%s: IOError when writing data to individual chunk file: %s" % (str(threadNum), str(e)))
         return 1
     
     # return
@@ -244,6 +276,16 @@ def writeDataToFile(data, hsk):
 # control awake command
 ##################################
 def dataConnection(threadNum, conn, addr, socket, packetNo):
+    """
+    Handles the data connection from the client, including receving the header and the binary data
+    The dictionary is writen to file if a new IP is found, and this is then passed on to the ingestion scripts
+    :param threadNum: Thread number for logging purposes
+    :param conn: connection used
+    :param addr: IP addres of the connection
+    :param socket: Socket used
+    :param packetNo: the number of packets already received from this connection
+    :return:
+    """
     global logger
 
     logger.info("THREAD-%s: Now starting to process the connection" % str(threadNum))
@@ -281,6 +323,14 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
         if packetBuff == "":
             logger.warning("THREAD-%s: Connection unexpectedly closed, closing connection" % str(threadNum))
             return True, dataResends
+        if packet.startswith(CONTROL_CLOSE):
+            logger.info("THREAD-%s: Received close command, now closing the connection" % str(threadNum))
+            return True, dataResends
+
+        if packet.endswith(CONTROL_CLOSE):
+            logger.info("THREAD-%s: Received close command, now closing the connection" % str(threadNum))
+            return True, dataResends
+
         if len(packet) > PACKET_SIZE_ERROR:
             logger.warning("THREAD-%s: packet is oddly large while waiting for control string" % str(threadNum))
             conn.send(CONTROL_CLOSE)
@@ -289,12 +339,16 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
         if packet.startswith(CONTROL_HSK_RECEIVE):
             dataFiles += 1
             header += packet[len(CONTROL_HSK_RECEIVE):]
-            timeout = time.time() + THREAD_TIME_OUT
+            timeout = time.time() + CONECTION_TIMEOUT
             while 1:
                 if time.time() > timeout:
                     logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
-                                   str(threadNum), str(THREAD_TIME_OUT))
+                                   str(threadNum), str(CONECTION_TIMEOUT))
                     CloseConnection = True
+                    return True, dataResends
+
+                if header.endswith(CONTROL_CLOSE):
+                    logger.info("THREAD-%s: Recived close command, now closing the connection" % str(threadNum))
                     return True, dataResends
 
                 if header.endswith("}") or header.endswith("}\0"):
@@ -316,21 +370,20 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                         packet = ""
                         conn.send(CONTROL_DATA_REQUEST)
                         IncomingData = True
+                        logger.info("THREAD-%s: received header %s" % (str(threadNum), header))
                     except IndexError:
                         logger.warning("THREAD-%s: Could not split header file, atempting resend" % str(threadNum))
                         if dataResends > DATA_RESEND_CUTOFF:
                             logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
-                                           (str(threadNum), dataResends))
-                            conn.send(CONTROL_CLOSE)
+                                           (str(threadNum), str(dataResends)))
+                            conn.send(CONTROL_DATA_RESPONSE_NOK)
+                            dataResends += 1
+                            header = ""
                             return True, dataResends
-                        conn.send(CONTROL_DATA_RESPONSE_NOK)
-                        dataResends += 1
-                        header = ""
 
                     break
                 packetBuff = ""
                 chars = conn.recv(BUFFER_SIZE)
-                logger.info("Received %s " % str(chars))
                 header += chars
                 packetNo += 1
                 logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo, sys.getsizeof(chars)))
@@ -339,13 +392,16 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     currentIP = "%s:%s" % (addr[0], addr[1])
                     if knownIP != currentIP:
                         IP_dict[siteUID] = currentIP
+                        if not os.path.isdir(os.path.join(ROOT_FILE_PATH, "Dictionary")):
+                            os.makedirs(os.path.join(ROOT_FILE_PATH, "Dictionary"))
                         if not os.path.isfile(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl")):
                             try:
                                 f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl"), 'w+')
                                 pickle.dump(IP_dict, f)
                                 f.close()
                             except IOError, e:
-                                logger.warning("Unable to create dictionary file, error: %s" % str(e))
+                                logger.warning("THREAD-%s: Unable to create dictionary file, error: %s" %
+                                               (str(threadNum), str(e)))
                         try:
                             f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "Ip_Dict.pkl"), 'w')
                             pickle.dump(IP_dict, f)
@@ -361,14 +417,15 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     return True, dataResends
 
         if IncomingData:
-            data += packet
+            #data += packet
+            logger.info("data starting with %s" % packet)
             buff = ""
             packetBuff = ""
-            timeout = time.time() + THREAD_TIME_OUT
+            timeout = time.time() + CONECTION_TIMEOUT
             while 1:
                 if time.time() > timeout:
                     logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
-                                   str(threadNum), str(THREAD_TIME_OUT))
+                                   str(threadNum), str(CONECTION_TIMEOUT))
                     CloseConnection = True
                     return True, dataResends
                 buff = conn.recv(BUFFER_SIZE)
@@ -384,18 +441,22 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 if buff == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
                     return True, dataResends
-                #if sys.getsizeof(data) < PACKET_SIZE_ERROR:
-                #    logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
-                #                   threadNum)
-                #    recordChunkFailure(header, chunkNumber)
-                #    return True
+                if data.endswith(CONTROL_CLOSE):
+                    logger.info("THREAD-%s: Received close control message, now closing the connection" % str(threadNum))
+                    return True, dataResends
+                if sys.getsizeof(data) > PACKET_SIZE_ERROR:
+                    logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
+                                   str(threadNum))
+                    recordChunkFailure(header, chunkNumber)
+                    return True, dataResends
 
-            if len(data) - sys.getsizeof(DATA_STOP_KEY) != fileSize:
-                logger.warning("THREAD-%s: file does not contain the right data size, sending error response" %
-                               str(threadNum))
+            if (sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY)) != int(fileSize) and\
+                            (sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY) + 22) != int(fileSize):
+                logger.warning("THREAD-%s: file does not contain the right data size, expected %s, and received %s stop key size %s" %
+                               (str(threadNum), str(sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY)), str(fileSize), str(sys.getsizeof(DATA_STOP_KEY))))
                 if dataResends > DATA_RESEND_CUTOFF:
                             logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
-                                           (str(threadNum), dataResends))
+                                           (str(threadNum), str(dataResends)))
                             conn.send(CONTROL_CLOSE)
                             return True, dataResends
                 conn.send(CONTROL_DATA_RESPONSE_NOK)
@@ -406,12 +467,12 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 data = ""
             else:
                 conn.send(CONTROL_DATA_RESPONSE_OK)
-            logger.info("THREAD-%s: writing data to file" % str(threadNum))
-            writeDataToFile(data, header)
-            header = ""
-            packet = ""
-            packetBuff = ""
-            data = ""
+                logger.info("THREAD-%s: writing data to file" % str(threadNum))
+                writeDataToFile(data, header, threadNum)
+                header = ""
+                packet = ""
+                packetBuff = ""
+                data = ""
 
         if packet.startswith(CONTROL_CLOSE):
             header = ""
@@ -426,6 +487,16 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
 # Process the connection
 #################################
 def processConnection(threadNum, conn, addr, socket):
+    """
+    Handles the initial connection. Once the awake command has been recieved, the connection is passed on to
+    dataConection. Upon returning, the connection is then closed.
+    The number of resends is written to file with a timestamps for use in the ingestion scripts
+    :param threadNum: Thread number, use for logging
+    :param conn: the connection to the TCP client
+    :param addr: IP address of the client
+    :param socket: The socket in use
+    :return:
+    """
     # init
     global logger
     global threadCount
@@ -446,18 +517,17 @@ def processConnection(threadNum, conn, addr, socket):
         dataReceivedFlag = False
         
         # while there is data coming in
-        timeout = time.time() + THREAD_TIME_OUT
+        timeout = time.time() + CONECTION_TIMEOUT
 
         while 1:
             if time.time() > timeout:
                 logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
-                               str(threadNum), str(THREAD_TIME_OUT))
+                               str(threadNum), str(CONECTION_TIMEOUT))
                 CloseConnection = True
                 break
             chars = conn.recv(BUFFER_SIZE)
-            logger.info("Received string %s" % str(chars))
             if chars == "":
-                logger.warning("Blank packet")
+                logger.warning("THREAD-%s: Blank packet received, closing connection" % str(threadNum))
                 CloseConnection = True
                 break
             packetCount += 1
@@ -467,7 +537,8 @@ def processConnection(threadNum, conn, addr, socket):
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
                 logger.info("THREAD-%s: Received wakeup call: '%s' and sending response, starting data connection '%s'"
                             % (str(threadNum), packet, CONTROL_WAKEUP_CALL_SEND))
-                bool1, dataResend = dataConnection(threadNum, conn, addr, socket, packetCount)
+                randomVar, dataResend = dataConnection(threadNum, conn, addr, socket, packetCount)
+
                 dataResends += dataResend
                 writeFileFlag = False
                 wakeupWait = False
@@ -476,48 +547,15 @@ def processConnection(threadNum, conn, addr, socket):
                 logger.warning("THREAD-%s: Packet length is oddly large, closing connection, STOP FAILING HERE" % str(threadNum))
                 CloseConnection = True
                 break
-
-        """
-        while 1:
-            chars = conn.recv(BUFFER_SIZE)
-            packet += chars
-            if chars == "":
-                CloseConnection = True
-                logger.info("THREAD-%s: Received a blank packet, will close connection" % str(threadNum))
+            if packet.startswith(CONTROL_CLOSE):
+                logger.info("THREAD-%s: Received control close command, now closing connection" % str(threadNum))
                 break
-                packet = packet[:-1]
-            if (packet.startswith(CONTROL_CLOSE)):
-                logger.info("THREAD-%s: Recieved close connection" % str(threadNum))
-                CloseConnection = True
-                packet = ""
-                break #connection close request
-            elif (packet.startswith(CONTROL_WAKEUP_CALL_RECEIVE)):
-                conn.send(CONTROL_WAKEUP_CALL_SEND)
-                packet = ""
-                CloseConnection = processConnection(threadNum, conn, addr, socket)
-                logger.info("THREAD-%s: Received wakeup call: '%s' and sending response '%s'" % (str(threadNum),
-                                                                                                 packet,
-                                                                                                 CONTROL_WAKEUP_CALL_SEND))
-                writeFileFlag = False
-                wakeupWait = False
-                break
-        """
 
         # close connection
         #if CloseConnection:
         logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
         conn.close()
         packet = ""
-
-        #if writeFileFlag:
-        #    # write data
-        #    ret = writeDataToFile(data, hsk)
-        #    fileChunksReceived += 1
-            
-            # check if it is time to build the full file out of all the chunks
-        #    logger.info("Received %d/%d chunks" % (fileChunksReceived, TotalChunks))
-        #    if (fileChunksReceived == TotalChunks):
-        #        fileChunksReceived = 0
         logger.debug("++++++++++++++")
     except SocketError, e:
         logger.error("THREAD-%s: Socket error: %s" % (str(threadNum), str(e)))
@@ -532,10 +570,12 @@ def processConnection(threadNum, conn, addr, socket):
         threadCount -= 1
         if dataResends > 0:
             try:
+                if not os.path.isdir(os.path.join(ROOT_FILE_PATH, "Dictionary")):
+                    os.makedirs(os.path.join(ROOT_FILE_PATH, "Dictionary"))
                 f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w+')
                 f.write("%s,%s" % (str(datetime.datetime.utcnow()), str(dataResends)))
             except IOError, e:
-                logger.warning("Unable to write to data resend, error: %s", str(e))
+                logger.warning("THREAD-%s: Unable to write to data resend, error: %s", (str(threadNum), str(e)))
         return 1
         
     # return
@@ -546,7 +586,7 @@ def processConnection(threadNum, conn, addr, socket):
             f.write("%s,%s" % (str(datetime.datetime.utcnow()), str(dataResends)))
             f.close()
         except IOError, e:
-            logger.warning("Unable to write to data resend, error: %s", str(e))
+            logger.warning("THREAD-%s: Unable to write to data resend, error: %s", (str(threadNum), str(e)))
     threadCount -= 1
     return 0
 
@@ -556,6 +596,10 @@ def processConnection(threadNum, conn, addr, socket):
 # MAIN METHOD
 #################################
 def main():
+    """
+    Main funcion. Handles the binidng of the socket, and threads any connection received
+    :return:
+    """
     # initialization routines
     global logger
     global threadCount
@@ -603,4 +647,5 @@ def main():
 
 # main entry point
 if (__name__ == "__main__"):
+    print sys.getsizeof(DATA_STOP_KEY)
     main()
