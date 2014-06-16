@@ -3,7 +3,7 @@
 tcp_client.py
 Author: Casey Daniel
 Date: 11 June 2014
-version: 1.0
+version: 1.1.0
 
 Description:
   This script is used for the purpose of testing the tcp server used for the ABOVE array. As of version 1.0, this
@@ -13,6 +13,9 @@ Description:
 Changelog:
   1.0:
     -N/A
+
+  1.1.0:
+    -Bug Fixes
 
 Bug tracker:
   -NA
@@ -26,6 +29,7 @@ import random
 import sys
 import datetime
 import threading
+import struct
 
 
 ##############
@@ -56,32 +60,31 @@ TIME_DELAY = 3*60 #run every 3 min
 
 
 #makes the header and data list
-def makePacket(packetNo, maxPackets):
-    fake_data_list = []
+def makePacket(date, time, packetNo, maxPackets):
+    binary_data = struct.pack(">h", 10)
     #make 100 random integers from -100 to 100
-    for i in range(0, 100):
-        fake_data_list.append(random.randint(-100, 100))
-    fake_data = ",".join(str(x) for x in fake_data_list)
+    for i in range(1, 20000):
+        rand_num = random.randint(-100, 100)
+        binary_data += struct.pack(">h", rand_num)
 
     #get the sizes of the packets
-    file_size = sys.getsizeof(fake_data)
-    data_packet ="%sData_Stop\0" % fake_data
     #Get the time and date for the header
-    date = datetime.datetime.utcnow().strftime("%d%m%y")
-    time = datetime.datetime.utcnow().strftime("%H%M%S.%f")
-    time = time[:10]
+
 
     #Assemble the header for version 2.1
     header = "{%s,%s,%s,G3,2.1,20140509a,tst2,3,above,151,145,167,255,0,-47,667,%s,%s}" % \
-             (str(date), str(time), str(packetNo), str(file_size + 21 - 42), str(maxPackets))
-    return data_packet, header
+             (str(date), str(time), str(packetNo), str(40000), str(maxPackets))
+    return binary_data, header
 
 #function to actually send the packets to the server
 def dataSending(socket):
     #loop over 45 files, just like the instrument
+    date = datetime.datetime.utcnow().strftime("%d%m%y")
+    time = datetime.datetime.utcnow().strftime("%H%M%S.%f")
+    time = time[:10]
     for i in range(0, 45):
         missedPackets = 0
-        data_packet, header = makePacket(i, 45)
+        binary_data, header = makePacket(date, time, i, 45)
         #send the header controll string
         socket.send(CONTROL_HSK_RECEIVE)
         #get the response
@@ -91,10 +94,10 @@ def dataSending(socket):
         #check the responses against what could actually come in
         if response.startswith(CONTROL_DATA_REQUEST):
             #data request received, send the data
-            socket.send(data_packet)
+            socket.send(binary_data)
+            socket.send("Data_Stop\0")
 
             response2 = socket.recv(BUFFER_SIZE)
-            print response2
 
             if response2.startswith(CONTROL_DATA_RESPONSE_OK):
                 continue
@@ -144,7 +147,7 @@ def main():
     s.close()
 
     #repeat this funcion every TIME_DELAY interval
-    threading.Timer(TIME_DELAY, main).start()
+    #threading.Timer(TIME_DELAY, main).start()
 
 #main entry point
 if __name__ == "__main__":

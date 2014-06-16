@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.2.3
+ Version: 0.3.0
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -50,6 +50,10 @@
     0.2.3:
       -Added in an extra entry into the RTEMP package
 
+    0.3.0:
+      -Bug Fixes
+      -Better documentation
+
 
  Bug tracker:
    -None
@@ -84,19 +88,28 @@ import pickle
 TIME_DELAY = 60.0 #Seconds
 
 #File Paths
-RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/" #Test path for Casey's Mac
-#RAW_FILE_PATH = "/data/vlf" #Sever Root Path
-CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks" #Test Path
-#CHUNK_DATA_PATH = "/data/vlf_chunks" #server path
-FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles" #Test Path
-#FULL_DATA_PATH = "/data/vlf_full_files" #server path
-#ERROR_PATH = "/data/vlf/MalformedFiles" #Server Path
-ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles" #test path
+#RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/" #Test path for Casey's Mac
+RAW_FILE_PATH = "/data/vlf/testServer/testRawData"  # Server test path
+#RAW_FILE_PATH = "/data/vlf" # Sever Root Path
+
+#CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"  # Test Path
+#CHUNK_DATA_PATH = "/data/vlf_chunks"  # server path
+CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"  # Server test path
+
+#FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"  # Test Path
+#FULL_DATA_PATH = "/data/vlf_full_files"  # server path
+FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"  # Server test path
+
+#ERROR_PATH = "/data/vlf/MalformedFiles"  # Server Path
+#ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
+ERROR_PATH = "/data/vlf/testServer/BadFiles" # Server test path
+
 ROOT_FILE_PATH = "/data/vlf/testServer"
 
 # logging strings
-LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs"
-LOGFILE_MAX_BYTES = 1024000 * 100   #100MB
+#LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
+LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
+LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_FILENAME = "FileManager.log"
 logger = None
@@ -112,13 +125,13 @@ LAST_PACKET_TIMESTAMP = None
 
 #Key Strings
 START_KEY = "Data_Start"
-END_KEY = "Data_Stop"
+END_KEY = "Data_Stop\0"
 START_KEY_LENGTH = len(START_KEY)
 END_KEY_LENGTH = len(END_KEY)
 
 #miscilanious
-IP_Dict = {'barr': "1.1.1:1"} #IP Dictionary, barr entry put in for testing purposes
-RESEND_TIME = 300 #Seconds for the number of resends to be noted
+IP_Dict = {'barr': "1.1.1:1"}  # IP Dictionary, barr entry put in for testing purposes
+RESEND_TIME = 300  # Seconds for the number of resends to be noted
 
 def loggerInit():
     """
@@ -217,10 +230,8 @@ def unpackFile(path, fileName):
                 WifiStrength = header_contents[14]
                 FileSize = 40000
                 START_KEY_LENGTH = 10
-                END_KEY_LENGTH = 9
+                #END_KEY_LENGTH = 9
                 NumberOfChunks = 45
-                START_KEY = "Data_Start"
-                END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
                 return None, None, None
@@ -244,11 +255,9 @@ def unpackFile(path, fileName):
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
                 START_KEY_LENGTH = header_contents[17]
-                END_KEY_LENGTH = header_contents[18]
+                #END_KEY_LENGTH = header_contents[18]
                 NumberOfChunks = 45
                 START_KEY = "Data_Start"
-                #END_KEY_LENGTH = "Data_Start"
-                END_KEY = "Data_End "
             except IndexError:
                 logger.warning("Unable to unpack header")
 
@@ -271,8 +280,6 @@ def unpackFile(path, fileName):
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
                 NumberOfChunks = header_contents[17]
-                END_KEY = "Data_End"
-                END_KEY_LENGTH = len(END_KEY)
             except IndexError:
                 logger.warning("Unable to unpack header")
         else:
@@ -330,6 +337,7 @@ def unpackFile(path, fileName):
             chan1.append(dataList[j])
 
     #Checks to make sure both channels contain the right number data points. If this is not true the file is corrupted
+    #THIS SECTION NEEDS WORK, IF I STILL KEEP IT
     if len(chan2) != int(FileSize)/4:
         logger.warning("Chanel 2 did not contains the right number of data points, " + fileName + " is corrupted")
         contents.close()
@@ -377,7 +385,7 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
             combinedFile.write("{%s}" % Header)
 
         for i in range(0, len(Data)):
-            combinedFile.write(struct.pack('>h',  Data[i]))
+            combinedFile.write(struct.pack('>h', Data[i]))
         combinedFile.write("Data_End")
     logger.info("Done writing %s" % fileName)
 
@@ -390,8 +398,10 @@ def sendToRTEMP(Header, malformed_packets):
     global logger
     global LAST_PACKET_TIMESTAMP
 
+    software_version = Header[4]
+
     #extracts information
-    timeStamp = datetime.utcnow()
+    #This form is valid for software version 2.1 and previous
     version = "2.0"
     project = "above"
     site = Header[6]
@@ -408,7 +418,7 @@ def sendToRTEMP(Header, malformed_packets):
     clock_speed = Header[13]
 
     current_time = datetime.utcnow()
-    #We can't send RTEMP packets to quickly, otherwise we can overload the server
+    #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
     if LAST_PACKET_TIMESTAMP is not None:
         timeDiff = current_time - LAST_PACKET_TIMESTAMP
         timeDiff = timeDiff.total_seconds()
@@ -445,19 +455,22 @@ def sendToRTEMP(Header, malformed_packets):
         f.close()
     except IOError, e:
         logger.debug("Unable to open DataResends.txt, error: %s" % str(e))
-
+        resends = 0
+    #finds the number of resends in the last 5 min
     if len(array) > 0:
         resends = 0
         for entry in reversed(array):
-            timeStamp = datetime(entry[0])
-            timeDiff = timeStamp - current_time
-            timeDiff = timeDiff.total_seconds()
+            timeStamp = float(datetime(entry[0]))
+            timeDiff = timeStamp - Time.time()
+        #    timeDiff = timeDiff.total_seconds()
             if timeDiff < RESEND_TIME:
                 resends += entry[1]
             else:
                 break
     else:
         resends = 0
+
+    #Clears the data resends file
     try:
         f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w')
         f.write("")
@@ -465,13 +478,24 @@ def sendToRTEMP(Header, malformed_packets):
     except IOError, e:
         logger.debug("Unable to clear dataResends file, error: %s" % str(e))
 
+    #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
+    seconds_epoch = Time.time()
 
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
     RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s mal_packets %s " \
-                   "no_resends %s clk_speed %s" % (batt_temp, gps_fix, temp, V_batt, V_twelve, V_five, rssi, str(IP_addr),
-                                             str(malformed_packets), str(resends), str(clock_speed))
+                   "no_resends %s clk_speed %s" % (batt_temp,               # Battery temp
+                                                   gps_fix,                 # GPS Fix
+                                                   temp,                    # Temp of the main board
+                                                   V_batt,                  # Battery Voltage
+                                                   V_twelve,                # Voltage of the 12 Volt input
+                                                   V_five,                  # Voltage of the 5 volt input
+                                                   rssi,                    # Wifi signal strength
+                                                   str(IP_addr),            # IP Address of the instrument
+                                                   str(malformed_packets),  # No. of malformed packets in the set
+                                                   str(resends),            # No. of resent packets in the last 5 min
+                                                   str(clock_speed))        # Reported clock speed
     #Find the size of the information
     packet_size = sys.getsizeof(RTEMP_packet)
 
@@ -480,10 +504,17 @@ def sendToRTEMP(Header, malformed_packets):
     #If more information is needed, then the packets are queued appropriately
     if packet_size < MAX_PACKET_SIZE:
         RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "PACKET_QUEUE_LENGTH %s" % (timeStamp, version, project, site, device, date, time, str(1),
-                                                   str(0))
+                       "PACKET_QUEUE_LENGTH %s" % (str(seconds_epoch)[:-3],  # Seconds since epoch in UTC
+                                                   version,             # Version number, 2.0
+                                                   project,             # Project, above
+                                                   site,                # Site UID
+                                                   device,              # Device UID
+                                                   date,                # Date of the file
+                                                   time,                # Time of the file
+                                                   str(1),              # Packet number 1, since everything fits in one
+                                                   str(0))              # Queue length 0,
         RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet)
-        logger.info("Sending RTEMP Packet")
+        logger.info("Sending RTEMP Packet %s" % RTEMP_message)
         try:
             soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
@@ -494,10 +525,17 @@ def sendToRTEMP(Header, malformed_packets):
         numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
         for i in range(0, numberOfPackets):
             RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "PACKET_QUEUE_LENGTH %s" % (timeStamp, version, project, site, device, date, time, str(1),
-                                                   str(numberOfPackets - i - 1))
+                       "PACKET_QUEUE_LENGTH %s" % (str(seconds_epoch)[:-3],            # Seconds since epoch
+                                                   version,                       # Version, 2.0
+                                                   project,                       # project, above
+                                                   site,                          # Site UID
+                                                   device,                        # Device UID
+                                                   date,                          # Date from file
+                                                   time,                          # Time from file
+                                                   str(i),                        # Packet number
+                                                   str(numberOfPackets - i - 1))  # Packets in queue
             RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
-            logger.info("Sending RTEMP packet %s/%s" % (str(i), str(numberOfPackets)))
+            logger.info("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
             try:
                 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
@@ -528,17 +566,17 @@ def cleanUp():
                 Headers = []
                 f = f.split("_")
                 #Get the base file name
-                file_name = "%s_%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3], f[4])
+                file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])
                 search_file = "%s*" % file_name
 
                 #Gets the directory information
                 splitPaths = paths.split("/")
-                print splitPaths
                 #hourDir = "%s/%s/%s" % (splitPaths[-3], splitPaths[-2], splitPaths[-1])
                 #chunkDir = os.path.join(CHUNK_DATA_PATH, hourDir)
                 siteID = ""
                 numberOfFiles = len(glob.glob(search_file))
                 CuruptedFiles = 0
+                hourDir = ""
                 #loops over the file chunks, and unpacks them
                 for chunk in glob.glob(search_file):
                     curuptedData = False
