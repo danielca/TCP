@@ -112,7 +112,7 @@ BUFFER_SIZE = 1024
 LOG_PATH = "/logs"
 LOG_FILENAME = "above_vlf_acquire_server.log"
 ROOT_FILE_PATH = "/data/vlf/testServer" #Sever Root Path
-FILE_PATH = "rawData"
+FILE_PATH = "testRawData"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 #TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
@@ -233,6 +233,7 @@ def writeDataToFile(data, hsk, threadNum):
     # init 
     global logger
     # set filename
+    print data[-4:]
     hskSplit = hsk[1:-1].split(',')
     day = str(hskSplit[0][0:2])
     month = str(hskSplit[0][2:4])
@@ -386,7 +387,8 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 chars = conn.recv(BUFFER_SIZE)
                 header += chars
                 packetNo += 1
-                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo, sys.getsizeof(chars)))
+                logger.info("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo,
+                                                                          sys.getsizeof(chars)))
                 if siteUID in IP_dict.keys():
                     knownIP = IP_dict.get(siteUID)
                     currentIP = "%s:%s" % (addr[0], addr[1])
@@ -435,25 +437,26 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                                                                               sys.getsizeof(buff)))
                 if data.endswith(DATA_STOP_KEY):
                     #conn.send(CONTROL_DATA_RESPONSE_OK)
-                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(threadNum), str(chunkNumber),
-                                                                             str(TotalChunks)))
+                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(threadNum), str(int(chunkNumber)+1),
+                                                                         str(TotalChunks)))
                     break
                 if buff == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
                     return True, dataResends
                 if data.endswith(CONTROL_CLOSE):
-                    logger.info("THREAD-%s: Received close control message, now closing the connection" % str(threadNum))
+                    logger.info("THREAD-%s: Received close control message, now closing the connection" %
+                                str(threadNum))
                     return True, dataResends
                 if sys.getsizeof(data) > PACKET_SIZE_ERROR:
                     logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
                                    str(threadNum))
                     recordChunkFailure(header, chunkNumber)
                     return True, dataResends
-
-            if (sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY)) != int(fileSize) and\
-                            (sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY) + 22) != int(fileSize):
-                logger.warning("THREAD-%s: file does not contain the right data size, expected %s, and received %s stop key size %s" %
-                               (str(threadNum), str(sys.getsizeof(data) - sys.getsizeof(DATA_STOP_KEY)), str(fileSize), str(sys.getsizeof(DATA_STOP_KEY))))
+            if (len(data) - len(DATA_STOP_KEY)) != int(fileSize):
+                logger.warning("THREAD-%s: file does not contain the right data size, expected %s, "
+                               "and received %s stop key size %s" %
+                               (str(threadNum), str(len(data) - len(DATA_STOP_KEY)), str(fileSize),
+                                str(sys.getsizeof(DATA_STOP_KEY))))
                 if dataResends > DATA_RESEND_CUTOFF:
                             logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
                                            (str(threadNum), str(dataResends)))
@@ -479,8 +482,8 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
             packet = ""
             packetBuff = ""
             data = ""
-            logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(threadNum), str(dataFiles),
-                                                                                   str(TotalChunks)))
+            logger.info("THREAD-%s: Successfully received %s/%s data files" % (str(threadNum), str(dataFiles + 1),
+                                                                               str(TotalChunks)))
             return True, dataResends
 
 #################################
@@ -573,7 +576,7 @@ def processConnection(threadNum, conn, addr, socket):
                 if not os.path.isdir(os.path.join(ROOT_FILE_PATH, "Dictionary")):
                     os.makedirs(os.path.join(ROOT_FILE_PATH, "Dictionary"))
                 f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w+')
-                f.write("%s,%s" % (str(datetime.datetime.utcnow()), str(dataResends)))
+                f.write("%s,%s" % (str(time.time()), str(dataResends)))
             except IOError, e:
                 logger.warning("THREAD-%s: Unable to write to data resend, error: %s", (str(threadNum), str(e)))
         return 1
@@ -647,5 +650,4 @@ def main():
 
 # main entry point
 if (__name__ == "__main__"):
-    print sys.getsizeof(DATA_STOP_KEY)
     main()
