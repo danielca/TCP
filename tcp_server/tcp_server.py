@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.4
+ Version: 2.1.5
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -16,8 +16,8 @@
     Cleanup of these files will be handled by other processes.
 
  Directions:
-    To start the server, it is recommended that nohup be used to ensure the server will run even after any terminal
-    sessions have stopped. An example: "nohup ./tcp_server.py"
+    To start the server simply call ./tcp_server.py start
+    To stop the server call ./tcp_server stop
 
  Changelog:
    1.9.0:
@@ -69,11 +69,12 @@
      -More comments and descriptions
      -Stress testing is still needed
 
+   2.1.5:
+     -Re-added daemon
+
 
  TODO:
-   -look at ways to keep track of IP addresses
-   -Test server
-   -Consider Deaemon
+   -stress test server
 
  BUG TRACKER:
    -Possible bug with the file size and the system size of the data stop key, once we move to testing with binary
@@ -98,6 +99,7 @@ import subprocess
 from threading import Thread
 import pickle
 import signal
+from daemon import runner
 
 
 ################
@@ -151,6 +153,17 @@ DATA_RESEND_CUTOFF = 3
 #IP Dictionary
 IP_dict = {}
 
+class TCPServer():
+    def __init__(self):
+        self.stdin_path = '/data/vlf'
+        self.stdout_path = '/data/vlf'
+        self.stderr_path = '/data/vlf'
+        self.pidfile_path =  '/tmp/foo.pid'
+        self.pidfile_timeout = 5
+    def run(self):
+        while True:
+            initLogging()
+            main()
 
 ##################################
 # initialize the logging file
@@ -653,4 +666,7 @@ def main():
 
 # main entry point
 if (__name__ == "__main__"):
-    main()
+    #main()
+    tcpServer = TCPServer()
+    daemon_runner = runner.DaemonRunner(tcpServer)
+    daemon_runner.do_action()
