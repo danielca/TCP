@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.4.0
+ Version: 0.5.0
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -13,6 +13,8 @@
   This task will start according to :param:TIME_DELAY. This is measured in seconds.
 
   This will be compatible with previous software versions, however is compatible with tcp server version 2.1.x+
+
+  To start simply call ./File_Manager.py start and to stop the script call ./File_Manager.py stop
 
  Changelog:
     0.0.1:
@@ -57,19 +59,21 @@
     0.4.0:
       -New Functions to only handle in binary data rather than unpacking
 
+    0.5.0:
+      -Added daemon
+
 
  Bug tracker:
    -None
 
  TODO:
-   -Decide on error handling
    -un-comment the timer function, commented for testing purposes
    -Deaemon process
-   -Uncomment the break statment for the time check
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
 __name__ = '__main__'
+
 import threading
 import logging
 import logging.handlers
@@ -82,6 +86,7 @@ import sys
 import socket
 import time as Time
 import pickle
+from daemon import runner
 
 
 #################
@@ -136,6 +141,18 @@ END_KEY_LENGTH = len(END_KEY)
 IP_Dict = {'barr': "1.1.1:1"}  # IP Dictionary, barr entry put in for testing purposes
 RESEND_TIME = 300  # Seconds for the number of resends to be noted
 
+class FileManager():
+    def __init__(self):
+        self.stdin_path = '/data/vlf'
+        self.stdout_path = '/data/vlf'
+        self.stderr_path = '/data/vlf'
+        self.pidfile_path =  '/tmp/foo.pid'
+        self.pidfile_timeout = 5
+    def run(self):
+        while True:
+            loggerInit()
+            cleanUp()
+
 def loggerInit():
     """
     loggerInit simply initializes the logger file that the log statements can be found in
@@ -183,7 +200,9 @@ def getHeader(path, fileName):
     hsk = ""
     hskSplit = []
 
+    #Open the file
     with open(os.path.join(path, fileName), 'rb') as contents:
+        #Read characters until } is found, the end of the header
         while 1:
             try:
                 char = contents.read(1)
@@ -194,7 +213,10 @@ def getHeader(path, fileName):
             if char == "}":
                 break
 
+        #split the header and remove the brackets
         hskSplit = hsk[1:-1].split(",")
+
+        #For software version previous to 2.1, the start key needs to be read
         if int(hskSplit[4]) < 2.1:
             try:
                 startKey = contents.read(START_KEY_LENGTH)
@@ -206,11 +228,14 @@ def getHeader(path, fileName):
             else:
                 logger.warning("Unable to find the start key")
                 return None, None
+
+        #Read the reamining informaiton in the file
         try:
             remaingData = contents.read()
         except IOError, e:
             logger.warning("Unable to read data, error %s" % str(e))
 
+        #find the end key in the file, everything else is the binary data
         if remaingData.endswith(END_KEY):
             data = remaingData[:(-1 * END_KEY_LENGTH)]
             return hskSplit, data
@@ -429,6 +454,8 @@ def fileCombinationBinary(data, header, fileName, filePath):
     softwearVersion = int(header[4])
 
     fileHeader = ""
+
+    #check the software verision to see the format of the header and place the file size in the appropriate entry
     if softwearVersion < 2.0:
         headerString = "".join(str(x) for x in header)
         fileHeader = "{%s}Data_Start" % headerString
@@ -444,12 +471,16 @@ def fileCombinationBinary(data, header, fileName, filePath):
         logger.warning("Unkown software version %s, if this is a new software version, please update this script"
                        % str(softwearVersion))
         return
+
+    #make the string to be written to file
     fileData = "%s%sData_Stop" % (fileHeader, data)
 
+    #check the file path
     if not os.path.isdir(filePath):
         os.makedirs(filePath)
         logger.debug("Making the data file path %s" % filePath)
 
+    #open and write the data file
     logger.debug("Writing data file")
     with open(os.path.join(filePath, fileName), "w") as dataFile:
         try:
@@ -758,7 +789,7 @@ def cleanUp():
                                             os.path.join(ERROR_PATH, curuptedChunk))
                                 except IOError, e:
                                     logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
-                            #break
+                            break
 
 
 
@@ -813,6 +844,9 @@ if __name__ == '__main__':
     print "**********************************************************************"
     print "Starting the file manager script"
 
-    loggerInit()
+    #loggerInit()
 
-    main()
+    #main()
+    fileManager = FileManager()
+    daemon_runner = runner.DaemonRunner(fileManager)
+    daemon_runner.do_action()
