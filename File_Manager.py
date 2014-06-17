@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.3.0
+ Version: 0.4.0
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -53,6 +53,9 @@
     0.3.0:
       -Bug Fixes
       -Better documentation
+
+    0.4.0:
+      -New Funcions to only handle in binary data rather than unpacking
 
 
  Bug tracker:
@@ -159,6 +162,62 @@ def loggerInit():
     # write initial messages
     logger.info("+++++++ ABOVE VLF File Manager Log +++++++")
     logger.info("Starting File Manager......")
+
+
+def getHeader(path, fileName):
+    """
+    getHeader is a replacement for the unpackFile method. unpackFile reads in the binary data and translates them to
+    two lists of integers. For the needs of this script, this seems unnecessary.
+    This script simply reads in the header, followed by the data. A check for the end key is made, and the start key
+    if the software version is previous to 2.1.
+    :param path: specified file path as a string
+    :param fileName: specified file name as a string
+    :return: (binary data as a string, header as a list.)
+    """
+    global logger
+
+    if not os.path.isfile(os.path.join(path, fileName)):
+        logger.warning("Unable to find file %s/%s" % (path, fileName))
+        return None, None
+
+    hsk = ""
+    hskSplit = []
+
+    with open(os.path.join(path, fileName), 'rb') as contents:
+        while 1:
+            try:
+                char = contents.read(1)
+            except IOError, e:
+                logger.warning("Unable to read character, error: %s" % str(e))
+                return None, None
+            hsk += char
+            if char == "}":
+                break
+
+        hskSplit = hsk[1:-1].split(",")
+        if int(hskSplit[4]) < 2.1:
+            try:
+                startKey = contents.read(START_KEY_LENGTH)
+            except IOError, e:
+                logger.warning("Unable to read file %s, error:" % (fileName, str(e)))
+                return None, None
+            if startKey == START_KEY:
+                logger.info("Found the start key of file %s" % fileName)
+            else:
+                logger.warning("Unable to find the start key")
+                return None, None
+        try:
+            remaingData = contents.read()
+        except IOError, e:
+            logger.warning("Unable to read data, error %s" % str(e))
+
+        if remaingData.endswith(END_KEY):
+            data = remaingData[:(-1 * END_KEY_LENGTH)]
+            return hskSplit, data
+        else:
+            logger.warning("Unable to find the stop key")
+            return None, None
+
 
 
 def unpackFile(path, fileName):
@@ -349,6 +408,56 @@ def unpackFile(path, fileName):
     contents.close()
     return header_contents, chan1, chan2
 
+def fileCombinationBinary(data, header, fileName, filePath):
+    """
+    fileCombinationBinary is a function that will write the binary data to the specified file.
+
+    The difference between fileCombinationBinary and fileCombination is that this function takes in the binary data
+    instead of each channel as a list of integers. This is to be used with the getHeader method instead of the
+    unpackFile method.
+
+    :param data: String of the binary data
+    :param header: Header contents as a list
+    :param fileName: specified file name as a string
+    :param filePath: specified file path as a string
+    :return: None
+    """
+    global logger
+
+    logger.info("Combinind data files")
+
+    softwearVersion = int(header[4])
+
+    fileHeader = ""
+    if softwearVersion < 2.0:
+        headerString = "".join(str(x) for x in header)
+        fileHeader = "{%s}Data_Start" % headerString
+    if softwearVersion == 2.0:
+        header[16] = len(data)
+        headerString = "".join(str(x) for x in header)
+        fileHeader = "{%s}Data_Start" % headerString
+    if softwearVersion == 2.1:
+        header[16] = len(data)
+        headerString = "".join(str(x) for x in header)
+        fileHeader = "{%s}" % headerString
+    else:
+        logger.warning("Unkown software version %s, if this is a new software version, please update this script"
+                       % str(softwearVersion))
+        return
+    fileData = "%s%sData_Stop" % (fileHeader, data)
+
+    if not os.path.isdir(filePath):
+        os.makedirs(filePath)
+        logger.debug("Making the data file path %s" % filePath)
+
+    logger.debug("Writing data file")
+    with open(os.path.join(filePath, fileName), "w") as dataFile:
+        try:
+            dataFile.write(fileData)
+        except IOError, e:
+            logger.warning("Unable to write file %s, error %s" % (fileName, str(e)))
+
+    logger.debug("Done writing file %s/%s" % (filePath, fileName))
 
 def fileCombination(Chan1, Chan2, Header, fileName, filePath):
     """
@@ -577,11 +686,13 @@ def cleanUp():
                 numberOfFiles = len(glob.glob(search_file))
                 CuruptedFiles = 0
                 hourDir = ""
+                totalData = ""
                 #loops over the file chunks, and unpacks them
                 for chunk in glob.glob(search_file):
                     curuptedData = False
                     logger.info("Unpacking file %s" % (str(chunk)))
-                    header, data1, data2 = unpackFile(paths, chunk)
+                    #header, data1, data2 = unpackFile(paths, chunk)
+                    header, data = getHeader(paths, chunk)
 
                     #If the file is curupted, then the file is moved to the graveyard and combine the data we have
                     #into a larger chunk
@@ -604,7 +715,8 @@ def cleanUp():
                         logger.info("Combining Files due to corrupted file")
                         if not os.path.exists(full_file_path):
                             os.makedirs(full_file_path)
-                        fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                        #fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                        fileCombinationBinary(totalData, Headers[0], full_file_name, full_file_path)
                         CuruptedFiles += 1
 
                         continue
@@ -652,9 +764,10 @@ def cleanUp():
 
 
                     Headers.append(header)
-                    for i in range(0, len(data1)):
-                        Chan1.append(data1[i])
-                        Chan2.append(data2[i])
+                    totalData += data
+                    #for i in range(0, len(data1)):
+                    #    Chan1.append(data1[i])
+                    #    Chan2.append(data2[i])
                     chunkPath = os.path.join(FULL_DATA_PATH, hourDir, "Chunks")
                     if not os.path.exists(chunkPath):
                         os.makedirs(chunkPath)
@@ -675,7 +788,8 @@ def cleanUp():
 
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
-                    fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                    #fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
+                    fileCombinationBinary(data, Headers[0], full_file_name, full_file_path)
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
     #Start this part for recursive checking, disabled for checking

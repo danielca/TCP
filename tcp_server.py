@@ -420,7 +420,6 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
 
         if IncomingData:
             #data += packet
-            logger.info("data starting with %s" % packet)
             buff = ""
             packetBuff = ""
             timeout = time.time() + CONECTION_TIMEOUT
@@ -442,16 +441,19 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     break
                 if buff == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
+                    writeDataToFile(data, header, threadNum)
                     return True, dataResends
                 if data.endswith(CONTROL_CLOSE):
                     logger.info("THREAD-%s: Received close control message, now closing the connection" %
                                 str(threadNum))
+                    writeDataToFile(data, header, threadNum)
                     return True, dataResends
                 if sys.getsizeof(data) > PACKET_SIZE_ERROR:
                     logger.warning("THREAD-%s: Unexpectedly large file size in atempting to collect the header" %
                                    str(threadNum))
                     recordChunkFailure(header, chunkNumber)
                     return True, dataResends
+
             if (len(data) - len(DATA_STOP_KEY)) != int(fileSize):
                 logger.warning("THREAD-%s: file does not contain the right data size, expected %s, "
                                "and received %s stop key size %s" %
@@ -461,6 +463,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                             logger.warning("THREAD-%s: Tried to resend data %s times, aborting connection" %
                                            (str(threadNum), str(dataResends)))
                             conn.send(CONTROL_CLOSE)
+                            writeDataToFile(data, header, threadNum)
                             return True, dataResends
                 conn.send(CONTROL_DATA_RESPONSE_NOK)
                 IncomingData = False
