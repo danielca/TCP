@@ -55,7 +55,7 @@
       -Better documentation
 
     0.4.0:
-      -New Funcions to only handle in binary data rather than unpacking
+      -New Functions to only handle in binary data rather than unpacking
 
 
  Bug tracker:
