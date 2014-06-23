@@ -18,6 +18,7 @@
  Directions:
     To start the server simply call ./tcp_server.py start
     To stop the server call ./tcp_server stop
+    If a restart is needed call ./tcp_server.py restart
 
  Changelog:
    1.9.0:
@@ -70,7 +71,7 @@
      -Stress testing is still needed
 
    2.1.5:
-     -Re-added daemon
+     -Finally added in the daemon process
 
 
  TODO:
@@ -99,8 +100,7 @@ import subprocess
 from threading import Thread
 import pickle
 import signal
-from daemon import runner
-
+from Daemon import Daemon
 
 ################
 #Constants
@@ -145,25 +145,19 @@ CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
 
 #miscilanious
-PACKET_SIZE_ERROR = 25600000000000000 # 256KB
+PACKET_SIZE_ERROR = 25600000000000000  # 256KB
 DATA_STOP_KEY = "Data_Stop\0"
-CONECTION_TIMEOUT = 900 #15 min
+CONECTION_TIMEOUT = 900  # 15 min
 DATA_RESEND_CUTOFF = 3
+PID_FILE = '/usr/local/src/above/TCP_Server.pid'
 
 #IP Dictionary
 IP_dict = {}
 
-class TCPServer():
-    def __init__(self):
-        self.stdin_path = '/data/vlf'
-        self.stdout_path = '/data/vlf'
-        self.stderr_path = '/data/vlf'
-        self.pidfile_path =  '/tmp/foo.pid'
-        self.pidfile_timeout = 5
+class MyDaemon(Daemon):
     def run(self):
-        while True:
-            initLogging()
-            main()
+        main()
+
 
 ##################################
 # initialize the logging file
@@ -174,8 +168,6 @@ def initLogging():
     :return:
     """
     global logger
-    print "\n-----------------"
-    print "Initializing logging"
     
     # initialize the logger
     logger = logging.getLogger("ABOVE VLF Acquisition Logger")
@@ -196,9 +188,6 @@ def initLogging():
     logger.info("Initializing TCP server ... ")
     
     # return
-    print "Logging initialized, refer to log file for all further messages"
-    print "  '%s'" % (LOG_FILENAME)
-    print "-----------------"
     return 0
  
 
@@ -616,7 +605,7 @@ def processConnection(threadNum, conn, addr, socket):
 #################################
 def main():
     """
-    Main funcion. Handles the binidng of the socket, and threads any connection received
+    Main function. Handles the binding of the socket, and threads any connection received
     :return:
     """
     # initialization routines
@@ -656,17 +645,40 @@ def main():
             try:
                 conn.close()
                 logger.info("Safely closed connection")
-            except Exception, e:
+            except Exception:
                 logger.error("Error closing connection after socket error")
             logger.debug("++++++++++++++")
-        except KeyboardInterrupt, e:
+        except KeyboardInterrupt:
             logger.error("Keyboard interrupt encountered, quitting ... ")
             exit(0)
             
 
 # main entry point
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     #main()
-    tcpServer = TCPServer()
-    daemon_runner = runner.DaemonRunner(tcpServer)
-    daemon_runner.do_action()
+    print "**********************************************************************"
+    print "              Starting the file manager script"
+    print "     Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
+    print "**********************************************************************"
+
+
+    TCP_server = MyDaemon(PID_FILE)
+
+    if len(sys.argv) == 2:
+        if sys.argv[1] == 'start':
+            try:
+                TCP_server.start()
+            except:
+                pass
+        elif sys.argv[1] == 'stop':
+            TCP_server.stop()
+
+        elif sys.argv[1] == 'restart':
+            TCP_server.restart()
+
+        else:
+            sys.exit(2)
+            sys.exit(0)
+
+    else:
+        print "Please use ./tcp_server.py start to start the script. See documentation for more detail"

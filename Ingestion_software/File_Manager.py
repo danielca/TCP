@@ -15,6 +15,7 @@
   This will be compatible with previous software versions, however is compatible with tcp server version 2.1.x+
 
   To start simply call ./File_Manager.py start and to stop the script call ./File_Manager.py stop
+  If a restart is needed simply call ./File_Manager.py restart
 
  Changelog:
     0.0.1:
@@ -60,7 +61,7 @@
       -New Functions to only handle in binary data rather than unpacking
 
     0.5.0:
-      -Added daemon
+      -Finally working with the Daemon Process
 
 
  Bug tracker:
@@ -68,7 +69,7 @@
 
  TODO:
    -un-comment the timer function, commented for testing purposes
-   -Deaemon process
+   -Look into putting a command to start services at boot
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
@@ -86,33 +87,34 @@ import sys
 import socket
 import time as Time
 import pickle
-from daemon import runner
-
+#import TestDaemon as Daemon
+from Daemon import Daemon
 
 #################
 #  Constants
 #################
 #Time Delay between clean-ups
-TIME_DELAY = 60.0 #Seconds
+TIME_DELAY = 60.0  # Seconds
 
 #File Paths
-#RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/" #Test path for Casey's Mac
-RAW_FILE_PATH = "/data/vlf/testServer/testRawData"  # Server test path
-#RAW_FILE_PATH = "/data/vlf" # Sever Root Path
+RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
+#RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
+#RAW_FILE_PATH = "/data/vlf"                                        # Sever Root Path
 
-#CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"  # Test Path
-#CHUNK_DATA_PATH = "/data/vlf_chunks"  # server path
-CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"  # Server test path
+CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
+#CHUNK_DATA_PATH = "/data/vlf_chunks"                               # server path
+#CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
-#FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"  # Test Path
-#FULL_DATA_PATH = "/data/vlf_full_files"  # server path
-FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"  # Server test path
+FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
+#FULL_DATA_PATH = "/data/vlf_full_files"                            # server path
+#FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
 
-#ERROR_PATH = "/data/vlf/MalformedFiles"  # Server Path
-#ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
-ERROR_PATH = "/data/vlf/testServer/BadFiles" # Server test path
+#ERROR_PATH = "/data/vlf/MalformedFiles"                            # Server Path
+ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
+#ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
 
-ROOT_FILE_PATH = "/data/vlf/testServer"
+#ROOT_FILE_PATH = "/data/vlf/testServer"
+ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
 
 # logging strings
 #LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
@@ -140,18 +142,16 @@ END_KEY_LENGTH = len(END_KEY)
 #miscilanious
 IP_Dict = {'barr': "1.1.1:1"}  # IP Dictionary, barr entry put in for testing purposes
 RESEND_TIME = 300  # Seconds for the number of resends to be noted
+PIDFILE = '/usr/local/src/above/FileManager.pid'
 
-class FileManager():
-    def __init__(self):
-        self.stdin_path = '/data/vlf'
-        self.stdout_path = '/data/vlf'
-        self.stderr_path = '/data/vlf'
-        self.pidfile_path =  '/tmp/foo.pid'
-        self.pidfile_timeout = 5
+
+
+
+class MyDaemon(Daemon):
     def run(self):
-        while True:
-            loggerInit()
-            cleanUp()
+        loggerInit()
+        main()
+
 
 def loggerInit():
     """
@@ -160,12 +160,10 @@ def loggerInit():
     """
     global logger
 
-
-    print "Starting the Logger"
-
     # initialize the logger
     logger = logging.getLogger("ABOVE VLF Acquisition Logger")
     logger.setLevel(logging.DEBUG)
+    #create the path if it does not exist
     if not os.path.exists(LOG_PATH):
         os.makedirs(LOG_PATH)
     LOG_FILE = os.path.join(LOG_PATH,LOG_FILENAME)
@@ -174,8 +172,6 @@ def loggerInit():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    print "Logger has now been started, please see log file at %s/%s" % (LOG_PATH, LOG_FILENAME)
-    print "**********************************************************************"
     # write initial messages
     logger.info("+++++++ ABOVE VLF File Manager Log +++++++")
     logger.info("Starting File Manager......")
@@ -198,7 +194,6 @@ def getHeader(path, fileName):
         return None, None
 
     hsk = ""
-    hskSplit = []
 
     #Open the file
     with open(os.path.join(path, fileName), 'rb') as contents:
@@ -217,7 +212,7 @@ def getHeader(path, fileName):
         hskSplit = hsk[1:-1].split(",")
 
         #For software version previous to 2.1, the start key needs to be read
-        if int(hskSplit[4]) < 2.1:
+        if float(hskSplit[4]) < 2.1:
             try:
                 startKey = contents.read(START_KEY_LENGTH)
             except IOError, e:
@@ -235,14 +230,21 @@ def getHeader(path, fileName):
         except IOError, e:
             logger.warning("Unable to read data, error %s" % str(e))
 
+        print remaingData[-9:]
+
         #find the end key in the file, everything else is the binary data
         if remaingData.endswith(END_KEY):
             data = remaingData[:(-1 * END_KEY_LENGTH)]
             return hskSplit, data
+        elif remaingData.endswith("Data_Stop"):
+            data = remaingData[:-9]
+            return hskSplit, data
+        elif remaingData.endswith("Data_Stop "):
+            data = remaingData[:-10]
+            return hskSplit, data
         else:
             logger.warning("Unable to find the stop key")
             return None, None
-
 
 
 def unpackFile(path, fileName):
@@ -433,6 +435,7 @@ def unpackFile(path, fileName):
     contents.close()
     return header_contents, chan1, chan2
 
+
 def fileCombinationBinary(data, header, fileName, filePath):
     """
     fileCombinationBinary is a function that will write the binary data to the specified file.
@@ -451,29 +454,36 @@ def fileCombinationBinary(data, header, fileName, filePath):
 
     logger.info("Combinind data files")
 
-    softwearVersion = int(header[4])
+    softwearVersion = float(header[4])
 
     fileHeader = ""
 
-    #check the software verision to see the format of the header and place the file size in the appropriate entry
-    if softwearVersion < 2.0:
-        headerString = "".join(str(x) for x in header)
-        fileHeader = "{%s}Data_Start" % headerString
-    if softwearVersion == 2.0:
-        header[16] = len(data)
-        headerString = "".join(str(x) for x in header)
-        fileHeader = "{%s}Data_Start" % headerString
-    if softwearVersion == 2.1:
-        header[16] = len(data)
-        headerString = "".join(str(x) for x in header)
-        fileHeader = "{%s}" % headerString
-    else:
-        logger.warning("Unkown software version %s, if this is a new software version, please update this script"
-                       % str(softwearVersion))
-        return
+    newHeader = [None] * 18
+
+
+    newHeader[0] = header[0]
+    newHeader[1] = header[1]
+    newHeader[2] = "0"
+    newHeader[3] = header[3]
+    newHeader[4] = "2.1"
+    newHeader[5] = header[5]
+    newHeader[6] = header[6]
+    newHeader[7] = header[7]
+    newHeader[8] = header[8]
+    newHeader[9] = header[9]
+    newHeader[10] = newHeader[10]
+    newHeader[11] = newHeader[11]
+    newHeader[12] = newHeader[12]
+    newHeader[13] = newHeader[13]
+    newHeader[14] = newHeader[14]
+    newHeader[15] = newHeader[15]
+    newHeader[16] = str(len(data))
+    newHeader[17] = "1"
+
+    headerString = ",".join(str(x) for x in newHeader)
 
     #make the string to be written to file
-    fileData = "%s%sData_Stop" % (fileHeader, data)
+    fileData = "{%s}%sData_Stop\0" % (headerString, data)
 
     #check the file path
     if not os.path.isdir(filePath):
@@ -489,6 +499,7 @@ def fileCombinationBinary(data, header, fileName, filePath):
             logger.warning("Unable to write file %s, error %s" % (fileName, str(e)))
 
     logger.debug("Done writing file %s/%s" % (filePath, fileName))
+
 
 def fileCombination(Chan1, Chan2, Header, fileName, filePath):
     """
@@ -529,6 +540,7 @@ def fileCombination(Chan1, Chan2, Header, fileName, filePath):
         combinedFile.write("Data_End")
     logger.info("Done writing %s" % fileName)
 
+
 def sendToRTEMP(Header, malformed_packets):
     """
     Responisble for sending health keeping information to the RTEMP server at the University of Calgary
@@ -537,8 +549,6 @@ def sendToRTEMP(Header, malformed_packets):
     """
     global logger
     global LAST_PACKET_TIMESTAMP
-
-    software_version = Header[4]
 
     #extracts information
     #This form is valid for software version 2.1 and previous
@@ -701,8 +711,6 @@ def cleanUp():
             os.chdir(paths)
             #search for the first chunk of the file
             for f in glob.glob("*_00.chunk.dat"):
-                Chan1 = []
-                Chan2 = []
                 Headers = []
                 f = f.split("_")
                 #Get the base file name
@@ -710,19 +718,15 @@ def cleanUp():
                 search_file = "%s*" % file_name
 
                 #Gets the directory information
-                splitPaths = paths.split("/")
-                #hourDir = "%s/%s/%s" % (splitPaths[-3], splitPaths[-2], splitPaths[-1])
-                #chunkDir = os.path.join(CHUNK_DATA_PATH, hourDir)
                 siteID = ""
                 numberOfFiles = len(glob.glob(search_file))
                 CuruptedFiles = 0
                 hourDir = ""
                 totalData = ""
                 #loops over the file chunks, and unpacks them
+
                 for chunk in glob.glob(search_file):
-                    curuptedData = False
                     logger.info("Unpacking file %s" % (str(chunk)))
-                    #header, data1, data2 = unpackFile(paths, chunk)
                     header, data = getHeader(paths, chunk)
 
                     #If the file is curupted, then the file is moved to the graveyard and combine the data we have
@@ -734,7 +738,7 @@ def cleanUp():
                             os.makedirs(ERROR_PATH)
                         try:
                             shutil.move(os.path.join(paths, chunk),
-                                            os.path.join(ERROR_PATH, chunk))
+                                        os.path.join(ERROR_PATH, chunk))
                         except IOError, e:
                             logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
 
@@ -746,7 +750,6 @@ def cleanUp():
                         logger.info("Combining Files due to corrupted file")
                         if not os.path.exists(full_file_path):
                             os.makedirs(full_file_path)
-                        #fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
                         fileCombinationBinary(totalData, Headers[0], full_file_name, full_file_path)
                         CuruptedFiles += 1
 
@@ -767,7 +770,8 @@ def cleanUp():
                         expectedFiles = header[17]
                     #If not all 45 files are present, and the data has been sitting for longer than the time specified
                     #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
-                    if numberOfFiles < expectedFiles:
+                    #There was a small revision to software 2.0 where 15 file chunks were sent instead of 45
+                    if numberOfFiles != expectedFiles or numberOfFiles != 15:
                         currentTime = datetime.utcnow()
                         fileTime = header[1]
                         fileDate = header[0]
@@ -778,8 +782,8 @@ def cleanUp():
                         timeDiff = timeDiff.total_seconds()
                         if abs(timeDiff) > CuruptedTime:
                             CuruptedFiles += 1
-                            curuptedData = True
                             logger.warning("Found file set with missing chunks more than an hour old, moving file set")
+                            sendToRTEMP(header, numberOfFiles)
                             for curuptedChunk in glob.glob(search_file):
                                 if not os.path.exists(ERROR_PATH):
                                     os.makedirs(ERROR_PATH)
@@ -791,14 +795,8 @@ def cleanUp():
                                     logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
                             break
 
-
-
-
                     Headers.append(header)
                     totalData += data
-                    #for i in range(0, len(data1)):
-                    #    Chan1.append(data1[i])
-                    #    Chan2.append(data2[i])
                     chunkPath = os.path.join(FULL_DATA_PATH, hourDir, "Chunks")
                     if not os.path.exists(chunkPath):
                         os.makedirs(chunkPath)
@@ -819,12 +817,11 @@ def cleanUp():
 
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
-                    #fileCombination(Chan1, Chan2, Headers[0], full_file_name, full_file_path)
                     fileCombinationBinary(data, Headers[0], full_file_name, full_file_path)
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
     #Start this part for recursive checking, disabled for checking
-    #threading.Timer(TIME_DELAY, cleanUp).start()
+    threading.Timer(TIME_DELAY, cleanUp).start()
 
 
 def main():
@@ -835,18 +832,32 @@ def main():
 
     cleanUp()
 
-    #threading.Timer(TIME_DELAY, main).start()
-
-
 #Main Entry Point
 if __name__ == '__main__':
 
     print "**********************************************************************"
-    print "Starting the file manager script"
+    print "              Starting the file manager script"
+    print "               Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
+    print "**********************************************************************"
 
-    #loggerInit()
 
-    #main()
-    fileManager = FileManager()
-    daemon_runner = runner.DaemonRunner(fileManager)
-    daemon_runner.do_action()
+    fileManager = MyDaemon(PIDFILE)
+
+    if len(sys.argv) == 2:
+        if sys.argv[1] == 'start':
+            try:
+                fileManager.start()
+            except:
+                pass
+        elif sys.argv[1] == 'stop':
+            fileManager.stop()
+
+        elif sys.argv[1] == 'restart':
+            fileManager.restart()
+
+        else:
+            sys.exit(2)
+            sys.exit(0)
+
+    else:
+        print "Please use ./File_Manager.py start to start the script. See documentation for more detail"
