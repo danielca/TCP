@@ -29,6 +29,7 @@ import random
 import sys
 import datetime
 import threading
+import time
 import struct
 
 
@@ -54,7 +55,7 @@ CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
 #misc
-TIME_DELAY = 3*60 #run every 3 min
+TIME_DELAY = 3*60  # run every 3 min
 
 
 
@@ -90,9 +91,10 @@ def dataSending(socket):
         #get the response
         socket.send(header)
         response = socket.recv(BUFFER_SIZE)
+        print response
 
         #check the responses against what could actually come in
-        if response.startswith(CONTROL_DATA_REQUEST):
+        if response.startswith("[CTRL:dr-00:00]"):
             #data request received, send the data
             socket.send(binary_data)
             socket.send("Data_Stop\0")
@@ -134,8 +136,9 @@ def main():
     while 1:
         counter += 1
         recv = s.recv(BUFFER_SIZE)
+        print recv
 
-        if recv.startswith(CONTROL_WAKEUP_CALL_SEND):
+        if recv.startswith("[CTRL:awake]"):
             dataSending(s)
             break
         if counter > 10:
@@ -151,4 +154,6 @@ def main():
 
 #main entry point
 if __name__ == "__main__":
+    #for i in range(100):
     main()
+        #time.sleep(TIME_DELAY)
