@@ -25,9 +25,7 @@ Ingestion_software/
         Simple script that reads in the ip dictionary file saved by the server and prints the list of IP's to the screen
         NOTE: MUST BE PLACED IN THE SAME DIRECTORY AS THE IP DICTONARY
 
-daemon/
-    This folder contains the packages for the daemon script. Please see https://pypi.python.org/pypi/python-daemon/ for
-    further documentation
+Both branches contain Daemon.py This file is what allows the scripts to be run in the background.
 
 To start and stop the tcp server and the ingestion scripts in the command line type ./file_name.py start or
 ./file_name.py stop

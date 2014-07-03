@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 0.5.0
+ Version: 1.0.1
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -63,9 +63,15 @@
     0.5.0:
       -Finally working with the Daemon Process
 
+    1.0.0:
+      -Bug Fixes
+      -Stable release
+
+    1.0.1:
+      -Updated header version
+
 
  Bug tracker:
-   -None
 
  TODO:
    -un-comment the timer function, commented for testing purposes
@@ -87,7 +93,6 @@ import sys
 import socket
 import time as Time
 import pickle
-#import TestDaemon as Daemon
 from Daemon import Daemon
 
 #################
@@ -97,28 +102,31 @@ from Daemon import Daemon
 TIME_DELAY = 60.0  # Seconds
 
 #File Paths
-RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
+#RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
 #RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
-#RAW_FILE_PATH = "/data/vlf"                                        # Sever Root Path
+RAW_FILE_PATH = "/data/vlf/RawData"                                        # Sever Root Path
 
-CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
-#CHUNK_DATA_PATH = "/data/vlf_chunks"                               # server path
+#CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
+CHUNK_DATA_PATH = "/data/vlf/chunks"                               # server path
 #CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
-FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
-#FULL_DATA_PATH = "/data/vlf_full_files"                            # server path
+#FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
+FULL_DATA_PATH = "/data/vlf/full_files"                            # server path
 #FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
 
-#ERROR_PATH = "/data/vlf/MalformedFiles"                            # Server Path
-ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
+ERROR_PATH = "/data/vlf/MalformedFiles"                            # Server Path
+#ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
 #ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
 
 #ROOT_FILE_PATH = "/data/vlf/testServer"
-ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
+#ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
+ROOT_FILE_PATH = "/data/vlf"
 
 # logging strings
 #LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
-LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
+#LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
+LOG_PATH = "/data/vlf/logs"  # Server Path
+
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_FILENAME = "FileManager.log"
@@ -132,6 +140,7 @@ RTEMP_IP = "136.159.51.160"
 RTEMP_PORT = 25000
 MAX_PACKET_SIZE = 1024 #1Kb
 LAST_PACKET_TIMESTAMP = None
+time_between_packets = 30
 
 #Key Strings
 START_KEY = "Data_Start"
@@ -140,11 +149,10 @@ START_KEY_LENGTH = len(START_KEY)
 END_KEY_LENGTH = len(END_KEY)
 
 #miscilanious
-IP_Dict = {'barr': "1.1.1:1"}  # IP Dictionary, barr entry put in for testing purposes
+IP_Dict = {}  # IP Dictionary, barr entry put in for testing purposes
 RESEND_TIME = 300  # Seconds for the number of resends to be noted
-PIDFILE = '/usr/local/src/above/FileManager.pid'
-
-
+PID_PATH = '/usr/local/src/above/PID'
+PID_FILE = 'FileManager.pid'
 
 
 class MyDaemon(Daemon):
@@ -212,7 +220,12 @@ def getHeader(path, fileName):
         hskSplit = hsk[1:-1].split(",")
 
         #For software version previous to 2.1, the start key needs to be read
-        if float(hskSplit[4]) < 2.1:
+        try:
+            softwareVersion = float(hskSplit[4])
+        except ValueError:
+            logger.info("Unable to get the software version")
+            return None, None
+        if softwareVersion < 2.1:
             try:
                 startKey = contents.read(START_KEY_LENGTH)
             except IOError, e:
@@ -229,8 +242,6 @@ def getHeader(path, fileName):
             remaingData = contents.read()
         except IOError, e:
             logger.warning("Unable to read data, error %s" % str(e))
-
-        print remaingData[-9:]
 
         #find the end key in the file, everything else is the binary data
         if remaingData.endswith(END_KEY):
@@ -281,9 +292,8 @@ def unpackFile(path, fileName):
     #Opens the file in a loop
     with open(os.path.join(path, fileName), 'rb') as contents:
 
-
         #looks for the closing bracket in the header of the file
-        while found==False:
+        while not found:
             char = contents.read(1)
             #print char
             header += char
@@ -293,12 +303,12 @@ def unpackFile(path, fileName):
         #Removes the brackets, splits into a list, and extracts the software version
         header = header[1:-1]
         header_contents = header.split(",")
-        SoftwareVersion = header_contents[4]
+        HeaderVersion = header_contents[4]
 
         #Assembles information based on the software version.
         #Please see the documentation for information regarding the headers
         #When new SoftwareVersions are implimented, please update this script acordingly
-        if SoftwareVersion == '1.3':
+        if HeaderVersion == '1.3':
             try:
                 Date = header_contents[0]
                 Time = header_contents[1]
@@ -322,7 +332,7 @@ def unpackFile(path, fileName):
                 logger.warning("Unable to unpack header")
                 return None, None, None
 
-        elif SoftwareVersion == '2.0':
+        elif HeaderVersion == '2.0':
             try:
                 Date = header_contents[0]
                 Time = header_contents[1]
@@ -347,7 +357,7 @@ def unpackFile(path, fileName):
             except IndexError:
                 logger.warning("Unable to unpack header")
 
-        elif SoftwareVersion == '2.1':
+        elif HeaderVersion == '2.1':
             try:
                 Date = header_contents[0]
                 Time = header_contents[1]
@@ -355,7 +365,7 @@ def unpackFile(path, fileName):
                 GPSFix = header_contents[3]
                 FirmwareVersion = header_contents[5]
                 SiteID = header_contents[6]
-                AntennasSampled = header_contents[7]
+                SoftwareVersion = header_contents[7]
                 InstrumentID = header_contents[8]
                 FiveVolt = header_contents[9]
                 TwelveVolt = header_contents[10]
@@ -366,13 +376,14 @@ def unpackFile(path, fileName):
                 SampleRate = header_contents[15]
                 FileSize = header_contents[16]
                 NumberOfChunks = header_contents[17]
+                SDMemoryAddr = header_contents[18]
             except IndexError:
                 logger.warning("Unable to unpack header")
         else:
             logger.warning("Unknown software version")
 
         #Reads the start key for data from software versions prior to 2.1, as of 2.1 the start key is no longer present
-        if float(SoftwareVersion) < 2.1:
+        if float(HeaderVersion) < 2.1:
             startKey = contents.read(int(START_KEY_LENGTH))
             if startKey == START_KEY:
                 logger.info("Found start key for file "+fileName)
@@ -458,7 +469,7 @@ def fileCombinationBinary(data, header, fileName, filePath):
 
     fileHeader = ""
 
-    newHeader = [None] * 18
+    newHeader = [None] * 19
 
 
     newHeader[0] = header[0]
@@ -471,14 +482,15 @@ def fileCombinationBinary(data, header, fileName, filePath):
     newHeader[7] = header[7]
     newHeader[8] = header[8]
     newHeader[9] = header[9]
-    newHeader[10] = newHeader[10]
-    newHeader[11] = newHeader[11]
-    newHeader[12] = newHeader[12]
-    newHeader[13] = newHeader[13]
-    newHeader[14] = newHeader[14]
-    newHeader[15] = newHeader[15]
+    newHeader[10] = header[10]
+    newHeader[11] = header[11]
+    newHeader[12] = header[12]
+    newHeader[13] = header[13]
+    newHeader[14] = header[14]
+    newHeader[15] = header[15]
     newHeader[16] = str(len(data))
     newHeader[17] = "1"
+    newHeader[18] = header[18]
 
     headerString = ",".join(str(x) for x in newHeader)
 
@@ -550,6 +562,7 @@ def sendToRTEMP(Header, malformed_packets):
     global logger
     global LAST_PACKET_TIMESTAMP
 
+
     #extracts information
     #This form is valid for software version 2.1 and previous
     version = "2.0"
@@ -566,6 +579,7 @@ def sendToRTEMP(Header, malformed_packets):
     V_twelve = Header[10]
     V_five = Header[9]
     clock_speed = Header[13]
+    memory_addr = Header[18]
 
     current_time = datetime.utcnow()
     #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
@@ -573,7 +587,7 @@ def sendToRTEMP(Header, malformed_packets):
         timeDiff = current_time - LAST_PACKET_TIMESTAMP
         timeDiff = timeDiff.total_seconds()
         if timeDiff < 10:
-            Time.sleep(10)
+            Time.sleep(time_between_packets)
     LAST_PACKET_TIMESTAMP = current_time
 
     #Loading the latest dictionary from the server, if it is not loadable, then the latest is being written to
@@ -590,10 +604,13 @@ def sendToRTEMP(Header, malformed_packets):
             IP_addr = "0.0.0:0"
         else:
             IP_addr = IP_Dict[Header[6]]
+    except KeyError:
+        IP_addr = "0.0.0:0"
 
     array = []
     try:
         f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'r')
+
         contents = f.read()
         contents = contents.split("\n")
         if len(contents) > 0:
@@ -607,17 +624,19 @@ def sendToRTEMP(Header, malformed_packets):
         logger.debug("Unable to open DataResends.txt, error: %s" % str(e))
         resends = 0
     #finds the number of resends in the last 5 min
-    if len(array) > 0:
-        resends = 0
-        for entry in reversed(array):
-            timeStamp = float(datetime(entry[0]))
-            timeDiff = timeStamp - Time.time()
-        #    timeDiff = timeDiff.total_seconds()
-            if timeDiff < RESEND_TIME:
-                resends += entry[1]
-            else:
-                break
-    else:
+    try:
+        if len(array) > 0:
+            resends = 0
+            for entry in reversed(array):
+                timeStamp = float(entry[0])
+                timeDiff = timeStamp - Time.time()
+                if timeDiff < RESEND_TIME:
+                    resends += entry[1]
+                else:
+                    break
+        else:
+            resends = 0
+    except ValueError:
         resends = 0
 
     #Clears the data resends file
@@ -630,22 +649,23 @@ def sendToRTEMP(Header, malformed_packets):
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
     seconds_epoch = Time.time()
-
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
     RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s mal_packets %s " \
-                   "no_resends %s clk_speed %s" % (batt_temp,               # Battery temp
-                                                   gps_fix,                 # GPS Fix
-                                                   temp,                    # Temp of the main board
-                                                   V_batt,                  # Battery Voltage
-                                                   V_twelve,                # Voltage of the 12 Volt input
-                                                   V_five,                  # Voltage of the 5 volt input
-                                                   rssi,                    # Wifi signal strength
-                                                   str(IP_addr),            # IP Address of the instrument
-                                                   str(malformed_packets),  # No. of malformed packets in the set
-                                                   str(resends),            # No. of resent packets in the last 5 min
-                                                   str(clock_speed))        # Reported clock speed
+                   "no_resends %s clk_speed %s memory_addr %s" \
+                   % (batt_temp,               # Battery temp
+                      gps_fix,                 # GPS Fix
+                      temp,                    # Temp of the main board
+                      V_batt,                  # Battery Voltage
+                      V_twelve,                # Voltage of the 12 Volt input
+                      V_five,                  # Voltage of the 5 volt input
+                      rssi,                    # Wifi signal strength
+                      str(IP_addr),            # IP Address of the instrument
+                      str(malformed_packets),  # No. of malformed packets in the set
+                      str(resends),            # No. of resent packets in the last 5 min
+                      str(clock_speed),        # Reported clock speed
+                      str(memory_addr))        # SD memory address
     #Find the size of the information
     packet_size = sys.getsizeof(RTEMP_packet)
 
@@ -692,7 +712,9 @@ def sendToRTEMP(Header, malformed_packets):
             except socket.error, e:
                 logger.warning("Unable to send RTEMP Packet, error: %s" % str(e))
             #Ensures we don't overload the server
-            Time.sleep(10)
+            Time.sleep(time_between_packets)
+
+    return
 
 
 def cleanUp():
@@ -723,6 +745,7 @@ def cleanUp():
                 CuruptedFiles = 0
                 hourDir = ""
                 totalData = ""
+                Data = ""
                 #loops over the file chunks, and unpacks them
 
                 for chunk in glob.glob(search_file):
@@ -763,6 +786,7 @@ def cleanUp():
                     day = header[0][0:2]
                     site = header[6]
                     hourDir = os.path.join(year, month, day, site, hour)
+                    Data += data
 
                     if float(header[4]) < 2.1:
                         expectedFiles = 45
@@ -771,7 +795,7 @@ def cleanUp():
                     #If not all 45 files are present, and the data has been sitting for longer than the time specified
                     #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
                     #There was a small revision to software 2.0 where 15 file chunks were sent instead of 45
-                    if numberOfFiles != expectedFiles or numberOfFiles != 15:
+                    if numberOfFiles != expectedFiles and numberOfFiles != 15:
                         currentTime = datetime.utcnow()
                         fileTime = header[1]
                         fileDate = header[0]
@@ -789,12 +813,12 @@ def cleanUp():
                                     os.makedirs(ERROR_PATH)
 
                                 try:
+                                    logger.info("Moving file %s" % curuptedChunk)
                                     shutil.move(os.path.join(paths, curuptedChunk),
-                                            os.path.join(ERROR_PATH, curuptedChunk))
+                                                os.path.join(ERROR_PATH, curuptedChunk))
                                 except IOError, e:
                                     logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
                             break
-
                     Headers.append(header)
                     totalData += data
                     chunkPath = os.path.join(FULL_DATA_PATH, hourDir, "Chunks")
@@ -817,7 +841,7 @@ def cleanUp():
 
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
-                    fileCombinationBinary(data, Headers[0], full_file_name, full_file_path)
+                    fileCombinationBinary(Data, Headers[0], full_file_name, full_file_path)
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
     #Start this part for recursive checking, disabled for checking
@@ -835,25 +859,41 @@ def main():
 #Main Entry Point
 if __name__ == '__main__':
 
-    print "**********************************************************************"
-    print "              Starting the file manager script"
-    print "               Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
-    print "**********************************************************************"
-
-
-    fileManager = MyDaemon(PIDFILE)
+    if not os.path.isdir(PID_PATH):
+        os.makedirs(PID_PATH)
+    pidFile = os.path.join(PID_PATH, PID_FILE)
+    fileManager = MyDaemon(pidFile)
 
     if len(sys.argv) == 2:
         if sys.argv[1] == 'start':
+            print "**********************************************************************"
+            print "              Starting the file manager script"
+            print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
+            print "**********************************************************************"
+
             try:
                 fileManager.start()
             except:
                 pass
         elif sys.argv[1] == 'stop':
+            print "**********************************************************************"
+            print "               Stopping the File manager script"
+            print "**********************************************************************"
             fileManager.stop()
 
         elif sys.argv[1] == 'restart':
+            print "**********************************************************************"
+            print "               Restarting the File manager script"
+            print "**********************************************************************"
             fileManager.restart()
+
+        elif sys.argv[1] == 'main':
+            print "**********************************************************************"
+            print "          Starting the file manager script witn no daemon"
+            print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
+            print "**********************************************************************"
+            loggerInit()
+            main()
 
         else:
             sys.exit(2)
