@@ -391,6 +391,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                         fileSize = hskSplit[16]
                         TotalChunks =hskSplit[17]
                         memoryAddr = hskSplit[18]
+
                         packet = ""
                         conn.send(CONTROL_DATA_REQUEST)
                         IncomingData = True
