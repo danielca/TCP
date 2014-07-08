@@ -73,12 +73,14 @@
     1.0.2:
       -Search list is now sorted
 
+    1.0.3:
+      -Standard error and standard out are now re-directed to the log file
+
 
  Bug tracker:
-   -Search for file set assumes that each file is in order
+   -Find away to look for files that are more than just the _00 chunk
 
  TODO:
-   -un-comment the timer function, commented for testing purposes
    -Look into putting a command to start services at boot
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -163,6 +165,19 @@ class MyDaemon(Daemon):
     def run(self):
         main()
 
+class StreamToLogger(object):
+   """
+   Class that helps take standard out and error and re-direct them to the log file
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
+
 
 def loggerInit():
     """
@@ -174,18 +189,29 @@ def loggerInit():
     # initialize the logger
     logger = logging.getLogger("ABOVE VLF Acquisition Logger")
     logger.setLevel(logging.DEBUG)
+
     #create the path if it does not exist
     if not os.path.exists(LOG_PATH):
         os.makedirs(LOG_PATH)
-    LOG_FILE = os.path.join(LOG_PATH,LOG_FILENAME)
+
+    LOG_FILE = os.path.join(LOG_PATH, LOG_FILENAME)
+    #Handler to make sure files don't get to big, and will spin off new files
     handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUP_COUNT)
     formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S UTC")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+    #Standard out re-direct
+    outStream = StreamToLogger(logger, logging.INFO)
+    sys.stdout = outStream
+
+    #Standard error re-direct
+    errorStream = StreamToLogger(logger, logging.ERROR)
+    sys.stderr = errorStream
+
     # write initial messages
     logger.info("+++++++ ABOVE VLF File Manager Log +++++++")
-    logger.info("Starting File Manager......")
+    logger.info("Starting File Manager......1")
 
 
 def getHeader(path, fileName):
@@ -862,9 +888,14 @@ def main():
 
 #Main Entry Point
 if __name__ == '__main__':
+    #loggerInit()
 
     if not os.path.isdir(PID_PATH):
         os.makedirs(PID_PATH)
+
+    if not os.path.isdir(LOG_PATH):
+        os.makedirs(LOG_PATH)
+
     pidFile = os.path.join(PID_PATH, PID_FILE)
     fileManager = MyDaemon(pidFile)
 
@@ -875,10 +906,11 @@ if __name__ == '__main__':
             print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
             print "**********************************************************************"
 
-            try:
-                fileManager.start()
-            except:
-                pass
+            #try:
+            fileManager.start()
+            #except:
+            #    print"WHAAATTT"
+            #    pass
         elif sys.argv[1] == 'stop':
             print "**********************************************************************"
             print "               Stopping the File manager script"

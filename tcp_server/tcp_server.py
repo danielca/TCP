@@ -77,6 +77,12 @@
      -Bug fixes
      -Stable release!!!!!!
 
+   2.1.6:
+     -Added new standard in and out directory
+
+   2.1.7:
+     -Standard out and standard error are now re-directed to the log file
+
 
  TODO:
    -Fix any random bugs that come up.
@@ -164,6 +170,18 @@ class MyDaemon(Daemon):
     def run(self):
         main()
 
+class StreamToLogger(object):
+   """
+   Class that helps take standard out and error and re-direct them to the log file
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
 
 ##################################
 # initialize the logging file
@@ -192,6 +210,14 @@ def initLogging():
     # write initial messages
     logger.info("+++++++ ABOVE VLF Acquire Server +++++++")
     logger.info("Initializing TCP server ... ")
+
+     #Standard out re-direct
+    outStream = StreamToLogger(logger, logging.INFO)
+    sys.stdout = outStream
+
+    #Standard error re-direct
+    errorStream = StreamToLogger(logger, logging.ERROR)
+    sys.stderr = errorStream
     
     # return
     return 0
