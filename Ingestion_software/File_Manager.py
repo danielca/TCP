@@ -70,8 +70,12 @@
     1.0.1:
       -Updated header version
 
+    1.0.2:
+      -Search list is now sorted
+
 
  Bug tracker:
+   -Search for file set assumes that each file is in order
 
  TODO:
    -un-comment the timer function, commented for testing purposes
@@ -99,48 +103,48 @@ from Daemon import Daemon
 #  Constants
 #################
 #Time Delay between clean-ups
-TIME_DELAY = 60.0  # Seconds
+TIME_DELAY = 60.0 * 5  # 5 min since that's how long between packets being sent
 
 #File Paths
 #RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
 #RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
-RAW_FILE_PATH = "/data/vlf/RawData"                                        # Sever Root Path
+RAW_FILE_PATH = "/data/vlf/TCP_Server/RawData"                       # Sever Root Path
 
 #CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
-CHUNK_DATA_PATH = "/data/vlf/chunks"                               # server path
+CHUNK_DATA_PATH = "/data/vlf/TCP_Server/chunks"                               # server path
 #CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
 #FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
-FULL_DATA_PATH = "/data/vlf/full_files"                            # server path
+FULL_DATA_PATH = "/data/vlf/TCP_Server/full_files"                            # server path
 #FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
 
-ERROR_PATH = "/data/vlf/MalformedFiles"                            # Server Path
+ERROR_PATH = "/data/vlf/TCP_Server/malformedFiles"                            # Server Path
 #ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
 #ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
 
 #ROOT_FILE_PATH = "/data/vlf/testServer"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
-ROOT_FILE_PATH = "/data/vlf"
+ROOT_FILE_PATH = "/data/vlf/TCP_Server"
 
 # logging strings
 #LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
 #LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
-LOG_PATH = "/data/vlf/logs"  # Server Path
+LOG_PATH = "/data/vlf/TCP_Server/logs"  # Server Path
 
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
-LOG_FILENAME = "FileManager.log"
+LOG_FILENAME = "Above_File_Manager.log"
 logger = None
 
 #Time from file writen to be found corrupted if the full set is not available
-CuruptedTime = 3600 #seconds
+CuruptedTime = 3600  # seconds
 
 #RTEMP UDP Info
 RTEMP_IP = "136.159.51.160"
 RTEMP_PORT = 25000
-MAX_PACKET_SIZE = 1024 #1Kb
+MAX_PACKET_SIZE = 1024  # 1Kb
 LAST_PACKET_TIMESTAMP = None
-time_between_packets = 30
+time_between_packets = 15
 
 #Key Strings
 START_KEY = "Data_Start"
@@ -157,7 +161,6 @@ PID_FILE = 'FileManager.pid'
 
 class MyDaemon(Daemon):
     def run(self):
-        loggerInit()
         main()
 
 
@@ -447,7 +450,7 @@ def unpackFile(path, fileName):
     return header_contents, chan1, chan2
 
 
-def fileCombinationBinary(data, header, fileName, filePath):
+def fileCombinationBinary(data, header, filePath, fileName):
     """
     fileCombinationBinary is a function that will write the binary data to the specified file.
 
@@ -631,7 +634,7 @@ def sendToRTEMP(Header, malformed_packets):
                 timeStamp = float(entry[0])
                 timeDiff = timeStamp - Time.time()
                 if timeDiff < RESEND_TIME:
-                    resends += entry[1]
+                    resends += int(entry[1])
                 else:
                     break
         else:
@@ -684,7 +687,7 @@ def sendToRTEMP(Header, malformed_packets):
                                                    str(1),              # Packet number 1, since everything fits in one
                                                    str(0))              # Queue length 0,
         RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet)
-        logger.info("Sending RTEMP Packet %s" % RTEMP_message)
+        logger.debug("Sending RTEMP Packet %s" % RTEMP_message)
         try:
             soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
@@ -705,7 +708,7 @@ def sendToRTEMP(Header, malformed_packets):
                                                    str(i),                        # Packet number
                                                    str(numberOfPackets - i - 1))  # Packets in queue
             RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
-            logger.info("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
+            logger.debug("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
             try:
                 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
@@ -732,12 +735,16 @@ def cleanUp():
     for paths, dirs, files in os.walk(RAW_FILE_PATH):
             os.chdir(paths)
             #search for the first chunk of the file
-            for f in glob.glob("*_00.chunk.dat"):
+            for f in sorted(glob.glob("*_00.chunk.dat")):
                 Headers = []
                 f = f.split("_")
                 #Get the base file name
-                file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])
-                search_file = "%s*" % file_name
+                file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])  # THIS IS A TEMPORARY FIX WHILE CAMROSE
+                                                                       # HAS A GPS TIME ISSUE
+                search_file_name = "%s_%s*" % (f[0], f[1][:-2])
+                #search_file = "%s*" % file_name
+                search_file = "%s*" % search_file_name
+                logger.info("Search file %s" % search_file_name)
 
                 #Gets the directory information
                 siteID = ""
@@ -748,8 +755,8 @@ def cleanUp():
                 Data = ""
                 #loops over the file chunks, and unpacks them
 
-                for chunk in glob.glob(search_file):
-                    logger.info("Unpacking file %s" % (str(chunk)))
+                for chunk in sorted(glob.glob(search_file)):
+                    logger.debug("Unpacking file %s" % (str(chunk)))
                     header, data = getHeader(paths, chunk)
 
                     #If the file is curupted, then the file is moved to the graveyard and combine the data we have
@@ -773,14 +780,14 @@ def cleanUp():
                         logger.info("Combining Files due to corrupted file")
                         if not os.path.exists(full_file_path):
                             os.makedirs(full_file_path)
-                        fileCombinationBinary(totalData, Headers[0], full_file_name, full_file_path)
+                        fileCombinationBinary(totalData, Headers[0], full_file_path, full_file_name)
                         CuruptedFiles += 1
 
                         continue
 
 
 
-                    hour = header[1][2:4]
+                    hour = header[1][0:2]
                     year = "20%s" % header[0][4:6]
                     month = header[0][2:4]
                     day = header[0][0:2]
@@ -788,14 +795,11 @@ def cleanUp():
                     hourDir = os.path.join(year, month, day, site, hour)
                     Data += data
 
-                    if float(header[4]) < 2.1:
-                        expectedFiles = 45
-                    else:
-                        expectedFiles = header[17]
+                    expectedFiles = header[-2]
                     #If not all 45 files are present, and the data has been sitting for longer than the time specified
                     #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
                     #There was a small revision to software 2.0 where 15 file chunks were sent instead of 45
-                    if numberOfFiles != expectedFiles and numberOfFiles != 15:
+                    if int(numberOfFiles) != int(expectedFiles) or numberOfFiles != 15:
                         currentTime = datetime.utcnow()
                         fileTime = header[1]
                         fileDate = header[0]
@@ -806,7 +810,9 @@ def cleanUp():
                         timeDiff = timeDiff.total_seconds()
                         if abs(timeDiff) > CuruptedTime:
                             CuruptedFiles += 1
-                            logger.warning("Found file set with missing chunks more than an hour old, moving file set")
+                            logger.warning(
+                                "Found file set with missing chunks more than an hour old, moving file set, found %s "
+                                "Files, expected %s" % (numberOfFiles, str(expectedFiles)))
                             sendToRTEMP(header, numberOfFiles)
                             for curuptedChunk in glob.glob(search_file):
                                 if not os.path.exists(ERROR_PATH):
@@ -821,10 +827,12 @@ def cleanUp():
                             break
                     Headers.append(header)
                     totalData += data
-                    chunkPath = os.path.join(FULL_DATA_PATH, hourDir, "Chunks")
+                    chunkPath = os.path.join(CHUNK_DATA_PATH, hourDir)
                     if not os.path.exists(chunkPath):
                         os.makedirs(chunkPath)
                     try:
+                        logger.info("Moving %s to %s" % (str(os.path.join(paths, chunk)),
+                                                         os.path.join(chunkPath, chunk)))
                         shutil.move(os.path.join(paths, chunk), os.path.join(chunkPath, chunk))
                     except IOError, e:
                         logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
@@ -835,13 +843,12 @@ def cleanUp():
                 else:
                     full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
                     full_file_name = "%sFull_Data-%s.dat" % (file_name, str(CuruptedFiles))
-
                 if not os.path.exists(full_file_path):
                     os.makedirs(full_file_path)
 
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
-                    fileCombinationBinary(Data, Headers[0], full_file_name, full_file_path)
+                    fileCombinationBinary(Data, Headers[0], full_file_path, full_file_name)
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
     #Start this part for recursive checking, disabled for checking
@@ -850,10 +857,7 @@ def cleanUp():
 
 def main():
     #Main Function
-    global logger
-
-    logger.info("Starting initial clean up")
-
+    loggerInit()
     cleanUp()
 
 #Main Entry Point
@@ -893,7 +897,7 @@ if __name__ == '__main__':
             print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
             print "**********************************************************************"
             loggerInit()
-            main()
+            cleanUp()
 
         else:
             sys.exit(2)

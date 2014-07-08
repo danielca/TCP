@@ -112,12 +112,12 @@ import struct
 ################
 
 # globals
-TCP_IP = "136.159.51.230" #Sever IP
+TCP_IP = "136.159.51.230"  # Sever IP
 TCP_PORT = 26000
 BUFFER_SIZE = 1024
 LOG_PATH = "logs"
 LOG_FILENAME = "above_vlf_tcp_server.log"
-ROOT_FILE_PATH = "/data/vlf/TCP_Server" #Sever Root Path
+ROOT_FILE_PATH = "/data/vlf/TCP_Server"  # Sever Root Path
 FILE_PATH = "RawData"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 #TOTAL_CHUNKS_PER_FILE = 45
@@ -132,7 +132,7 @@ SOCKET_TIMEOUT_ON_CONNECTION = 60
 SOCKET_TIMEOUT_NORMAL = None
 
 # logging strings
-LOGFILE_MAX_BYTES = 1024000 * 100   #100MB
+LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 
 # control strings
@@ -388,8 +388,8 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                         chunkNumber = hskSplit[2]
                         siteUID = hskSplit[6]
                         deviceUID = hskSplit[8]
-                        fileSize = hskSplit[16]
-                        TotalChunks =hskSplit[17]
+                        fileSize = hskSplit[-3]
+                        TotalChunks =hskSplit[-2]
                         memoryAddr = hskSplit[18]
 
                         packet = ""
