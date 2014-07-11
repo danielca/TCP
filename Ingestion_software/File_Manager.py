@@ -110,28 +110,28 @@ TIME_DELAY = 60.0 * 5  # 5 min since that's how long between packets being sent
 #File Paths
 #RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
 #RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
-RAW_FILE_PATH = "/data/vlf/TCP_Server/RawData"                       # Sever Root Path
+RAW_FILE_PATH = "/data/vlf/RawData"                       # Sever Root Path
 
 #CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
-CHUNK_DATA_PATH = "/data/vlf/TCP_Server/chunks"                               # server path
+CHUNK_DATA_PATH = "/data/vlf/chunks"                               # server path
 #CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
 #FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
-FULL_DATA_PATH = "/data/vlf/TCP_Server/full_files"                            # server path
+FULL_DATA_PATH = "/data/vlf/full_files"                            # server path
 #FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
 
-ERROR_PATH = "/data/vlf/TCP_Server/malformedFiles"                            # Server Path
+ERROR_PATH = "/data/vlf//malformeFiles"                            # Server Path
 #ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
 #ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
 
 #ROOT_FILE_PATH = "/data/vlf/testServer"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
-ROOT_FILE_PATH = "/data/vlf/TCP_Server"
+ROOT_FILE_PATH = "/data/vlf"
 
 # logging strings
 #LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
 #LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
-LOG_PATH = "/data/vlf/TCP_Server/logs"  # Server Path
+LOG_PATH = "/data/vlf/logs"  # Server Path
 
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
@@ -590,6 +590,7 @@ def sendToRTEMP(Header, malformed_packets):
     """
     global logger
     global LAST_PACKET_TIMESTAMP
+    global IP_Dict
 
 
     #extracts information
@@ -893,9 +894,6 @@ if __name__ == '__main__':
     if not os.path.isdir(PID_PATH):
         os.makedirs(PID_PATH)
 
-    if not os.path.isdir(LOG_PATH):
-        os.makedirs(LOG_PATH)
-
     pidFile = os.path.join(PID_PATH, PID_FILE)
     fileManager = MyDaemon(pidFile)
 
@@ -906,11 +904,7 @@ if __name__ == '__main__':
             print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
             print "**********************************************************************"
 
-            #try:
             fileManager.start()
-            #except:
-            #    print"WHAAATTT"
-            #    pass
         elif sys.argv[1] == 'stop':
             print "**********************************************************************"
             print "               Stopping the File manager script"

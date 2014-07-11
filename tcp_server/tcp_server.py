@@ -88,7 +88,7 @@
    -Fix any random bugs that come up.
 
  BUG TRACKER:
-   -N/A
+   -Put try an expept around file size cast to an integer.
 
 Hickup on [2014-06-29 15:15:26 UTC]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -120,10 +120,11 @@ import struct
 # globals
 TCP_IP = "136.159.51.230"  # Sever IP
 TCP_PORT = 26000
+#TCP_PORT = 27000  # Test port
 BUFFER_SIZE = 1024
 LOG_PATH = "logs"
 LOG_FILENAME = "above_vlf_tcp_server.log"
-ROOT_FILE_PATH = "/data/vlf/TCP_Server"  # Sever Root Path
+ROOT_FILE_PATH = "/data/vlf"  # Sever Root Path
 FILE_PATH = "RawData"
 #ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
 #TOTAL_CHUNKS_PER_FILE = 45
@@ -159,8 +160,9 @@ PACKET_SIZE_ERROR = 25600000000000000  # 256KB
 DATA_STOP_KEY = "Data_Stop"
 CONNECTION_TIMEOUT = 60*10
 DATA_RESEND_CUTOFF = 3
+#PID_PATH = '/usr/local/src/above/testServer/PID' # Test Path
 PID_PATH = '/usr/local/src/above/PID'
-PID_FILE = 'TCP_Server.pid'
+PID_FILE = 'Test_TCP_Server.pid'
 
 #IP Dictionary
 IP_dict = {}
@@ -267,7 +269,6 @@ def writeDataToFile(data, hsk, threadNum):
     # init 
     global logger
     # set filename
-    print data[-4:]
     hskSplit = hsk[1:-1].split(',')
     day = str(hskSplit[0][0:2])
     month = str(hskSplit[0][2:4])

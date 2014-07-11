@@ -39,7 +39,7 @@ import struct
 
 #Ip Inofrmation
 TCP_ADDR = "136.159.51.230"
-TCP_PORT = 26000
+TCP_PORT = 27000
 BUFFER_SIZE = 1024
 
 #Control Strings
@@ -73,7 +73,8 @@ def makePacket(date, time, packetNo, maxPackets):
 
 
     #Assemble the header for version 2.1
-    header = "{%s,%s,%s,G3,2.1,20140509a,tst2,3,above,151,145,167,255,0,-47,667,%s,%s}" % \
+    #{120514,233025.004,1,G3,2.1,20140509a,test,20140509,above,151,145,167,255,0,-47,667,40000,1,1000}
+    header = "{%s,%s,%s,G3,2.1,20140509a,tst2,20140509,above,151,145,167,255,0,-47,667,%s,%s,100}" % \
              (str(date), str(time), str(packetNo), str(40000), str(maxPackets))
     return binary_data, header
 
