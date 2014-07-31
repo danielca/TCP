@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.1
+ Version: 1.0.4
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -75,6 +75,10 @@
 
     1.0.3:
       -Standard error and standard out are now re-directed to the log file
+
+    1.0.4:
+        -Temporary fix for the camrose time stamp bug
+        -Minor change to RTEMP packets.
 
 
  Bug tracker:
@@ -164,6 +168,7 @@ PID_FILE = 'FileManager.pid'
 class MyDaemon(Daemon):
     def run(self):
         main()
+
 
 class StreamToLogger(object):
    """
@@ -287,195 +292,6 @@ def getHeader(path, fileName):
             return None, None
 
 
-def unpackFile(path, fileName):
-    """
-    Unpacks the files from binary into integers as well as the header
-    :param path: The path to the file
-    :param fileName: the name of the file to be unpacked
-    :return: Header(as a list of strings), Channel 1(as a list of integers), Channel 2 (As a list of integers)
-    Please see project documentation to find the directions of Channel 1 and Channel 2
-    """
-    global logger
-
-    header = ""
-    startKey = ""
-    dataList = []
-    chan1 = []
-    chan2 = []
-    found = False
-    logger.info("Starting file " + fileName)
-
-    #Checks if file exists first
-    if not os.path.isfile(os.path.join(path, fileName)):
-        logger.warning("could not find " + fileName)
-        return None, None, None
-
-    #Quick check to make sure file is not really small and most likely corrupted
-    filesize = os.path.getsize(os.path.join(path, fileName))
-    if filesize < 1000:
-        logger.warning(fileName + " is below 1000 bytes")
-        #contents.close()
-        contents = None
-        return None, None, None
-
-    #Opens the file in a loop
-    with open(os.path.join(path, fileName), 'rb') as contents:
-
-        #looks for the closing bracket in the header of the file
-        while not found:
-            char = contents.read(1)
-            #print char
-            header += char
-            if char == "}":
-                found = True
-
-        #Removes the brackets, splits into a list, and extracts the software version
-        header = header[1:-1]
-        header_contents = header.split(",")
-        HeaderVersion = header_contents[4]
-
-        #Assembles information based on the software version.
-        #Please see the documentation for information regarding the headers
-        #When new SoftwareVersions are implimented, please update this script acordingly
-        if HeaderVersion == '1.3':
-            try:
-                Date = header_contents[0]
-                Time = header_contents[1]
-                Offset = header_contents[2]
-                GPSFix = header_contents[3]
-                FirmwareVersion = header_contents[5]
-                SiteID = header_contents[6]
-                AntennasSampled = header_contents[7]
-                InstrumentID = header_contents[8]
-                FiveVolt = header_contents[9]
-                TwelveVolt = header_contents[10]
-                BatteryTemp = header_contents[11]
-                ClockSpeed = header_contents[12]
-                BoardTemp = header_contents[13]
-                WifiStrength = header_contents[14]
-                FileSize = 40000
-                START_KEY_LENGTH = 10
-                #END_KEY_LENGTH = 9
-                NumberOfChunks = 45
-            except IndexError:
-                logger.warning("Unable to unpack header")
-                return None, None, None
-
-        elif HeaderVersion == '2.0':
-            try:
-                Date = header_contents[0]
-                Time = header_contents[1]
-                Offset = header_contents[2]
-                GPSFix = header_contents[3]
-                FirmwareVersion = header_contents[5]
-                SiteID = header_contents[6]
-                AntennasSampled = header_contents[7]
-                InstrumentID = header_contents[8]
-                FiveVolt = header_contents[9]
-                TwelveVolt = header_contents[10]
-                BatteryTemp = header_contents[11]
-                ClockSpeed = header_contents[12]
-                BoardTemp = header_contents[13]
-                WifiStrength = header_contents[14]
-                SampleRate = header_contents[15]
-                FileSize = header_contents[16]
-                START_KEY_LENGTH = header_contents[17]
-                #END_KEY_LENGTH = header_contents[18]
-                NumberOfChunks = 45
-                START_KEY = "Data_Start"
-            except IndexError:
-                logger.warning("Unable to unpack header")
-
-        elif HeaderVersion == '2.1':
-            try:
-                Date = header_contents[0]
-                Time = header_contents[1]
-                Offset = header_contents[2]
-                GPSFix = header_contents[3]
-                FirmwareVersion = header_contents[5]
-                SiteID = header_contents[6]
-                SoftwareVersion = header_contents[7]
-                InstrumentID = header_contents[8]
-                FiveVolt = header_contents[9]
-                TwelveVolt = header_contents[10]
-                BatteryTemp = header_contents[11]
-                ClockSpeed = header_contents[12]
-                BoardTemp = header_contents[13]
-                WifiStrength = header_contents[14]
-                SampleRate = header_contents[15]
-                FileSize = header_contents[16]
-                NumberOfChunks = header_contents[17]
-                SDMemoryAddr = header_contents[18]
-            except IndexError:
-                logger.warning("Unable to unpack header")
-        else:
-            logger.warning("Unknown software version")
-
-        #Reads the start key for data from software versions prior to 2.1, as of 2.1 the start key is no longer present
-        if float(HeaderVersion) < 2.1:
-            startKey = contents.read(int(START_KEY_LENGTH))
-            if startKey == START_KEY:
-                logger.info("Found start key for file "+fileName)
-            else:
-                logger.warning("No start key found " + fileName + " is corrupted")
-                contents.close()
-                return None, None, None
-
-        #Looks for the end key in the file
-        try:
-            logger.debug("Reading the data")
-            #data = contents.read(int(FileSize))
-            data = contents.read()
-            endKey = data[int(-1 * int(END_KEY_LENGTH)):]
-            data = data[:int(-1 * int(END_KEY_LENGTH))]
-            #endKey = data[len(data)-10:len(data)]
-            #endKey = contents.read()
-        except IOError:
-            logger.warning("IOE error trying to read the end key")
-            endKey = None
-            contents.close()
-            return None, None, None
-
-    #Check the end key
-    if endKey == END_KEY:
-        logger.debug("Found end key ")
-    else:
-        logger.debug("No end key found in" + fileName)
-
-    #Unpacks the data from binary into signed integer
-    for i in range(0, len(data), 2):
-        value = data[i:i+2]
-        if len(value) == 2:
-            number = struct.unpack('>h', data[i:i+2])
-            #print number
-            dataList.append(number[0])
-        else:
-            break
-    logger.debug("total points found is " + str(len(dataList)))
-
-    #Splits data into two channels
-    for j in range(0, len(dataList)):
-        if j % 2 != 0:
-            chan2.append(dataList[j])
-            #if dataList[j] != 0:
-                #print("chan2 has a non 0 " + str(j))
-        else:
-            chan1.append(dataList[j])
-
-    #Checks to make sure both channels contain the right number data points. If this is not true the file is corrupted
-    #THIS SECTION NEEDS WORK, IF I STILL KEEP IT
-    if len(chan2) != int(FileSize)/4:
-        logger.warning("Chanel 2 did not contains the right number of data points, " + fileName + " is corrupted")
-        contents.close()
-        return None, None, None
-    if len(chan1) != int(FileSize)/4:
-        logger.warning("Chanel 1 did not containg the right number of data points, " + fileName + " is corupted")
-        contents.close()
-        return None, None, None
-    contents.close()
-    return header_contents, chan1, chan2
-
-
 def fileCombinationBinary(data, header, filePath, fileName):
     """
     fileCombinationBinary is a function that will write the binary data to the specified file.
@@ -542,46 +358,6 @@ def fileCombinationBinary(data, header, filePath, fileName):
     logger.debug("Done writing file %s/%s" % (filePath, fileName))
 
 
-def fileCombination(Chan1, Chan2, Header, fileName, filePath):
-    """
-    Combines the file chunks into one master file
-    file format is the same as the file chunks, please refer to documentation
-    :param Chan1: Data from Channel 1, as a list
-    :param Chan2: Data from Channel 2, as a list
-    :param Header: Header information, as a list
-    :param fileName: The destination file name
-    :param filePath: The destination file path
-    :return: None
-    """
-
-    global logger
-
-    Data = []
-    logger.info("combining data into one data set")
-    for i in range(0, len(Chan1)):
-        Data.append(Chan1[i])
-        Data.append(Chan2[i])
-
-    softwareVersion = Header[4]
-
-    #edits the header entry for the file size
-    Header[16] = sys.getsizeof(Data)
-    Header = ",".join(str(x) for x in Header)
-
-    logger.info("writing single data file at %s" % (str(os.path.join(filePath, fileName))))
-    with open(os.path.join(filePath, fileName), 'wb+') as combinedFile:
-
-        if float(softwareVersion) < 2.1:
-            combinedFile.write("{%s}Data_Start" % Header)
-        else:
-            combinedFile.write("{%s}" % Header)
-
-        for i in range(0, len(Data)):
-            combinedFile.write(struct.pack('>h', Data[i]))
-        combinedFile.write("Data_End")
-    logger.info("Done writing %s" % fileName)
-
-
 def sendToRTEMP(Header, malformed_packets):
     """
     Responisble for sending health keeping information to the RTEMP server at the University of Calgary
@@ -610,6 +386,9 @@ def sendToRTEMP(Header, malformed_packets):
     V_five = Header[9]
     clock_speed = Header[13]
     memory_addr = Header[18]
+
+    formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
+    formattedDate = "20%s-%s-%s" % (str(date[0:6]), str(date[2:4]), str(date[0:2]))
 
     current_time = datetime.utcnow()
     #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
@@ -669,6 +448,7 @@ def sendToRTEMP(Header, malformed_packets):
     except ValueError:
         resends = 0
 
+
     #Clears the data resends file
     try:
         f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w')
@@ -676,6 +456,7 @@ def sendToRTEMP(Header, malformed_packets):
         f.close()
     except IOError, e:
         logger.debug("Unable to clear dataResends file, error: %s" % str(e))
+
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
     seconds_epoch = Time.time()
@@ -709,8 +490,8 @@ def sendToRTEMP(Header, malformed_packets):
                                                    project,             # Project, above
                                                    site,                # Site UID
                                                    device,              # Device UID
-                                                   date,                # Date of the file
-                                                   time,                # Time of the file
+                                                   formattedDate,       # Date of the file
+                                                   formattedTime,       # Time of the file
                                                    str(1),              # Packet number 1, since everything fits in one
                                                    str(0))              # Queue length 0,
         RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet)
@@ -780,9 +561,16 @@ def cleanUp():
                 hourDir = ""
                 totalData = ""
                 Data = ""
-                #loops over the file chunks, and unpacks them
-
-                for chunk in sorted(glob.glob(search_file)):
+                #Searches for the files, checks to make sure the _00 is not in the last spot in the list
+                #With the GPS bug where the first file has a different second entry then the rest.
+                chunks = sorted(glob.glob(search_file), key=str.lower)
+                if "_00.chunk" in chunks[-1]:
+                    lastkey = chunks[-1]
+                    chunks.remove(lastkey)
+                    chunks.insert(0, lastkey)
+                    logger.info("Moved 00 to the front of the list!")
+                search_file = "%s*" % search_file_name
+                for chunk in chunks:
                     logger.debug("Unpacking file %s" % (str(chunk)))
                     header, data = getHeader(paths, chunk)
 

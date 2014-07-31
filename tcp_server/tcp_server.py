@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.6
+ Version: 2.1.8
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -46,7 +46,7 @@
    2.0.3:
      -Now saves everything to a single directory, and leaves for file_manager.py to sort out the directory tree
      -Removed hardcoded number of chunks, can now be found in the header
-     -Will be compatible with software version 2.1+
+     -Will be compatible with header version 2.1+
 
    2.1.0:
      -Re-structured to allow for buffering of packets
@@ -56,7 +56,7 @@
 
    2.1.1:
      -Bug fixes
-     -Data files will now be dumped into rawData directory
+     -Data files will now be dumped into root/rawData directory
 
    2.1.2:
      -Added thread time out condition
@@ -83,14 +83,15 @@
    2.1.7:
      -Standard out and standard error are now re-directed to the log file
 
+   2.1.8:
+     -Added in a check for test server constants, because that got really annoying missing a variable
+
 
  TODO:
    -Fix any random bugs that come up.
 
  BUG TRACKER:
    -Put try an expept around file size cast to an integer.
-
-Hickup on [2014-06-29 15:15:26 UTC]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
 
@@ -99,40 +100,40 @@ from socket import error as SocketError
 import time
 from sys import exit
 import datetime
-import glob
 import os
 import sys
-from logging import root
-import thread
 import logging
 import logging.handlers
-import subprocess
 from threading import Thread
+import threading
 import pickle
-import signal
 from Daemon import Daemon
-import struct
 
 ################
 #Constants
 ################
-
+TestServer = True  # This variable is used to change between the test directories/ports
+if TestServer:
+    LOG_FILENAME = "test_above_vlf_tcp_server.log"
+    ROOT_FILE_PATH = '/data/vlf/test_server'
+    TCP_PORT = 27000
+    PID_FILE = 'Test_TCP_Server.pid'
+    PID_PATH = '/usr/local/src/above/testServer/PID'
+else:
+    LOG_FILENAME = "above_vlf_tcp_server.log"
+    ROOT_FILE_PATH = '/data/vlf'
+    TCP_PORT = 26000
+    PID_FILE = 'TCP_Server.pid'
+    PID_PATH = '/usr/local/src/above/PID'
 # globals
 TCP_IP = "136.159.51.230"  # Sever IP
-TCP_PORT = 26000
-#TCP_PORT = 27000  # Test port
 BUFFER_SIZE = 1024
-LOG_PATH = "logs"
-LOG_FILENAME = "above_vlf_tcp_server.log"
-ROOT_FILE_PATH = "/data/vlf"  # Sever Root Path
-FILE_PATH = "RawData"
-#ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveRawData" #Test path for Casey's Mac
-#TOTAL_CHUNKS_PER_FILE = 45
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
 threadCount = 0
 fileChunksReceived = 0
 logger = None
+IP_dict = {}
 
 # socket globals
 SOCKET_TIMEOUT_ON_CONNECTION = 60
@@ -141,6 +142,8 @@ SOCKET_TIMEOUT_NORMAL = None
 # logging strings
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
+LOG_PATH = "logs"
+FILE_PATH = "RawData"
 
 # control strings
 CONTROL_CLOSE = "[CTRL:close]"
@@ -160,12 +163,7 @@ PACKET_SIZE_ERROR = 25600000000000000  # 256KB
 DATA_STOP_KEY = "Data_Stop"
 CONNECTION_TIMEOUT = 60*10
 DATA_RESEND_CUTOFF = 3
-#PID_PATH = '/usr/local/src/above/testServer/PID' # Test Path
-PID_PATH = '/usr/local/src/above/PID'
-PID_FILE = 'Test_TCP_Server.pid'
 
-#IP Dictionary
-IP_dict = {}
 
 #Used to override the method in daemon.py
 class MyDaemon(Daemon):
@@ -637,6 +635,7 @@ def processConnection(threadNum, conn, addr, socket):
         logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
         conn.close()
         packet = ""
+
         logger.debug("++++++++++++++")
     except SocketError, e:
         logger.error("THREAD-%s: Socket error: %s" % (str(threadNum), str(e)))
@@ -709,7 +708,11 @@ def main():
             # accept connections
             conn, addr = s.accept()
             threadCount += 1
-            thread.start_new_thread(processConnection, (threadCount, conn, addr, s))
+            activeThreads = threading.activeCount()
+            logger.info("Found %s active threads" % str(activeThreads))
+            newThread = Thread(target=processConnection,  args=(activeThreads, conn, addr, s))
+            newThread.start()
+            #thread.start_new_thread(processConnection, (threadCount, conn, addr, s))
         except SocketError, e:
             logger.error("Socket error: " + str(e))
             try:
