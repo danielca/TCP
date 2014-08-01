@@ -27,7 +27,8 @@ overLap = windowSize * 0.75;                           % Overlap width
 sampleFreq = 150000;                                   % Sampling rate, samples/second
 Window = hann(windowSize);                             % Window function for the spectrogram
 rootPath = '/Users/Casey/Desktop/MatlabTest/Data';     % Test root path
-ImmagePath = '/Users/Casey/Desktop/SummaryPlots';      % Test Path
+ImmagePath = '/Users/Casey/Desktop/SummaryPlots2';      % Test Path
+Bandwidth = 10;                                        % 10 Bins wide
 
 %Main funcion
 %Search the subdirectories of root path for the full data files
@@ -54,7 +55,7 @@ for j = 1:length(foundFiles)
     end
     %Check to see if the immage is already made, if so skip it
     if exist(summaryPlotName, 'file') == 2
-        continue
+        %continue
     end
     
     %Open the data file
@@ -86,13 +87,13 @@ for j = 1:length(foundFiles)
     %endKey = endKey{1}{1};
     fclose(dataFile);
 
-    %Data = Data(1:fileSize/2);
+    Data = Data(1:fileSize/2);
     %Gather the data into the channels
     Chan1 = Data(1:2:end);
     Chan2 = Data(2:2:end);
-    
+    noiseFreqs = 60:60:75000;
     %Filter is a work in progress, commented out for now.
-    %[Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq);
+    [Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq, noiseFreqs, Bandwidth);
     
     %Make the time serries vector for plotting
     timeSerries = linspace(1, length(Chan1), length(Chan1))/sampleFreq;
@@ -111,15 +112,18 @@ for j = 1:length(foundFiles)
     spectrogram(Chan2, Window, overLap,windowSize, sampleFreq, 'yaxis');
     colorbar;
     axis([0 timeSerries(end) 0 75000]);
-    title('Channel 2');
+    title({'','Channel 2'});
 
     subplot(4,1,3);
     plot(timeSerries, Chan1);
-    title('Channel 1');
+    title({'','Channel 1',});
+    axis([0 timeSerries(end) -5000 5000]);
     
     subplot(4,1,4);
     plot(timeSerries, Chan2);
     title({'Channel 2',})
+    axis([0 timeSerries(end) -5000 5000]);
+    
     %Save said plots
     saveas(1,summaryPlotName);
 end

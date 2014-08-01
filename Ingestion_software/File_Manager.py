@@ -112,28 +112,22 @@ from Daemon import Daemon
 TIME_DELAY = 60.0 * 5  # 5 min since that's how long between packets being sent
 
 #File Paths
-#RAW_FILE_PATH = "/Users/Casey/Desktop/AboveTest/AboveData/"        #Test path for Casey's Mac
 #RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
 RAW_FILE_PATH = "/data/vlf/RawData"                       # Sever Root Path
 
-#CHUNK_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/Chunks"     # Test Path
 CHUNK_DATA_PATH = "/data/vlf/chunks"                               # server path
 #CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
-#FULL_DATA_PATH = "/Users/Casey/Desktop/AboveTest/Data/FullFiles"   # Test Path
 FULL_DATA_PATH = "/data/vlf/full_files"                            # server path
 #FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
 
 ERROR_PATH = "/data/vlf//malformeFiles"                            # Server Path
-#ERROR_PATH = "/Users/Casey/Desktop/AboveTest/Data/MalformedFiles"  # test path
 #ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
 
 #ROOT_FILE_PATH = "/data/vlf/testServer"
-#ROOT_FILE_PATH = "/Users/Casey/Desktop/AboveTest"
 ROOT_FILE_PATH = "/data/vlf"
 
 # logging strings
-#LOG_PATH = "/Users/Casey/Desktop/AboveTest/Logs" # Casey's mac
 #LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
 LOG_PATH = "/data/vlf/logs"  # Server Path
 
@@ -154,9 +148,6 @@ time_between_packets = 15
 
 #Key Strings
 START_KEY = "Data_Start"
-END_KEY = "Data_Stop\0"
-START_KEY_LENGTH = len(START_KEY)
-END_KEY_LENGTH = len(END_KEY)
 
 #miscilanious
 IP_Dict = {}  # IP Dictionary, barr entry put in for testing purposes
@@ -216,7 +207,7 @@ def loggerInit():
 
     # write initial messages
     logger.info("+++++++ ABOVE VLF File Manager Log +++++++")
-    logger.info("Starting File Manager......1")
+    logger.info("Starting File Manager......")
 
 
 def getHeader(path, fileName):
@@ -261,11 +252,11 @@ def getHeader(path, fileName):
             return None, None
         if softwareVersion < 2.1:
             try:
-                startKey = contents.read(START_KEY_LENGTH)
+                startKey = contents.read(len("Data_Start"))
             except IOError, e:
                 logger.warning("Unable to read file %s, error:" % (fileName, str(e)))
                 return None, None
-            if startKey == START_KEY:
+            if startKey == "Data_Start":
                 logger.info("Found the start key of file %s" % fileName)
             else:
                 logger.warning("Unable to find the start key")
@@ -278,8 +269,8 @@ def getHeader(path, fileName):
             logger.warning("Unable to read data, error %s" % str(e))
 
         #find the end key in the file, everything else is the binary data
-        if remaingData.endswith(END_KEY):
-            data = remaingData[:(-1 * END_KEY_LENGTH)]
+        if remaingData.endswith("Data_Stop\0"):
+            data = remaingData[:-10]
             return hskSplit, data
         elif remaingData.endswith("Data_Stop"):
             data = remaingData[:-9]
@@ -340,7 +331,7 @@ def fileCombinationBinary(data, header, filePath, fileName):
     headerString = ",".join(str(x) for x in newHeader)
 
     #make the string to be written to file
-    fileData = "{%s}%sData_Stop\0" % (headerString, data)
+    fileData = "{%s}%sData_Stop" % (headerString, data)
 
     #check the file path
     if not os.path.isdir(filePath):
@@ -388,7 +379,7 @@ def sendToRTEMP(Header, malformed_packets):
     memory_addr = Header[18]
 
     formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
-    formattedDate = "20%s-%s-%s" % (str(date[0:6]), str(date[2:4]), str(date[0:2]))
+    formattedDate = "20%s-%s-%s" % (str(date[4:6]), str(date[2:4]), str(date[0:2]))
 
     current_time = datetime.utcnow()
     #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
@@ -463,20 +454,24 @@ def sendToRTEMP(Header, malformed_packets):
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
-    RTEMP_packet = "batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s mal_packets %s " \
-                   "no_resends %s clk_speed %s memory_addr %s" \
-                   % (batt_temp,               # Battery temp
-                      gps_fix,                 # GPS Fix
-                      temp,                    # Temp of the main board
-                      V_batt,                  # Battery Voltage
-                      V_twelve,                # Voltage of the 12 Volt input
-                      V_five,                  # Voltage of the 5 volt input
-                      rssi,                    # Wifi signal strength
-                      str(IP_addr),            # IP Address of the instrument
-                      str(malformed_packets),  # No. of malformed packets in the set
-                      str(resends),            # No. of resent packets in the last 5 min
-                      str(clock_speed),        # Reported clock speed
-                      str(memory_addr))        # SD memory address
+    RTEMP_packet = "instrument %s batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
+                   "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
+                   % (str(seconds_epoch)[:-3],  # Seconds since epoch
+                      batt_temp,                # Battery temp
+                      gps_fix,                  # GPS Fix
+                      temp,                     # Temp of the main board
+                      V_batt,                   # Battery Voltage
+                      V_twelve,                 # Voltage of the 12 Volt input
+                      V_five,                   # Voltage of the 5 volt input
+                      rssi,                     # Wifi signal strength
+                      str(IP_addr),             # IP Address of the instrument
+                      str(memory_addr),         # SD memory address
+                      str(clock_speed),         # Reported clock speed
+                      str(seconds_epoch)[:-3],  # Seconds since epoch
+                      str(malformed_packets),   # No. of malformed packets in the set
+                      str(resends))             # No. of resent packets in the last 5 min
+
+
     #Find the size of the information
     packet_size = sys.getsizeof(RTEMP_packet)
 
@@ -485,7 +480,7 @@ def sendToRTEMP(Header, malformed_packets):
     #If more information is needed, then the packets are queued appropriately
     if packet_size < MAX_PACKET_SIZE:
         RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "PACKET_QUEUE_LENGTH %s" % (str(seconds_epoch)[:-3],  # Seconds since epoch in UTC
+                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch)[:-3],  # Seconds since epoch in UTC
                                                    version,             # Version number, 2.0
                                                    project,             # Project, above
                                                    site,                # Site UID
@@ -494,7 +489,7 @@ def sendToRTEMP(Header, malformed_packets):
                                                    formattedTime,       # Time of the file
                                                    str(1),              # Packet number 1, since everything fits in one
                                                    str(0))              # Queue length 0,
-        RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet)
+        RTEMP_message = "%s%s" % (RTEMP_header, RTEMP_packet)
         logger.debug("Sending RTEMP Packet %s" % RTEMP_message)
         try:
             soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -506,7 +501,7 @@ def sendToRTEMP(Header, malformed_packets):
         numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
         for i in range(0, numberOfPackets):
             RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "PACKET_QUEUE_LENGTH %s" % (str(seconds_epoch)[:-3],            # Seconds since epoch
+                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch)[:-3],            # Seconds since epoch
                                                    version,                       # Version, 2.0
                                                    project,                       # project, above
                                                    site,                          # Site UID
@@ -515,7 +510,7 @@ def sendToRTEMP(Header, malformed_packets):
                                                    time,                          # Time from file
                                                    str(i),                        # Packet number
                                                    str(numberOfPackets - i - 1))  # Packets in queue
-            RTEMP_message = "%s %s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
+            RTEMP_message = "%s%s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
             logger.debug("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
             try:
                 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -584,6 +579,7 @@ def cleanUp():
                         try:
                             shutil.move(os.path.join(paths, chunk),
                                         os.path.join(ERROR_PATH, chunk))
+                            logger.info("moving %s to %s" % (chunk, ERROR_PATH))
                         except IOError, e:
                             logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
 
@@ -593,6 +589,7 @@ def cleanUp():
                         full_file_path = os.path.join(FULL_DATA_PATH, hourDir, siteID)
                         full_file_name = "%sFull_File-%s.dat" % (file_name, str(CuruptedFiles))
                         logger.info("Combining Files due to corrupted file")
+
                         if not os.path.exists(full_file_path):
                             os.makedirs(full_file_path)
                         fileCombinationBinary(totalData, Headers[0], full_file_path, full_file_name)
