@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.4
+ Version: 1.0.5
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -79,6 +79,10 @@
     1.0.4:
         -Temporary fix for the camrose time stamp bug
         -Minor change to RTEMP packets.
+
+    1.0.5:
+        -Removed batt_temp from RTEMP packets
+        -converted the voltages and temp to real units
 
 
  Bug tracker:
@@ -362,21 +366,21 @@ def sendToRTEMP(Header, malformed_packets):
 
     #extracts information
     #This form is valid for software version 2.1 and previous
-    version = "2.0"
-    project = "above"
-    site = Header[6]
-    device = Header[8]
-    date = Header[0]
-    time = Header[1]
-    batt_temp = Header[11]
-    gps_fix = Header[3]
-    temp = Header[12]
-    rssi = Header[14]
-    V_batt = Header[11]
-    V_twelve = Header[10]
-    V_five = Header[9]
-    clock_speed = Header[13]
-    memory_addr = Header[18]
+    if Header[5][-1] == 'a' or Header[5][-1] == 'b':
+        version = "2.0"
+        project = "above"
+        site = Header[6]
+        device = Header[8]
+        date = Header[0]
+        time = Header[1]
+        gps_fix = Header[3]
+        temp = (((float(Header[12])/256)*5)-0.6)*100
+        rssi = Header[14]
+        V_batt = (float(Header[11])/256)*20
+        V_twelve = (float(Header[10])/256)*15
+        V_five = (float(Header[9])/256)*10
+        clock_speed = Header[13]
+        memory_addr = Header[18]
 
     formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
     formattedDate = "20%s-%s-%s" % (str(date[4:6]), str(date[2:4]), str(date[0:2]))
@@ -454,10 +458,9 @@ def sendToRTEMP(Header, malformed_packets):
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
-    RTEMP_packet = "instrument %s batt_temp %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
+    RTEMP_packet = "instrument %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
                    "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
                    % (str(seconds_epoch)[:-3],  # Seconds since epoch
-                      batt_temp,                # Battery temp
                       gps_fix,                  # GPS Fix
                       temp,                     # Temp of the main board
                       V_batt,                   # Battery Voltage

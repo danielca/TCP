@@ -26,10 +26,18 @@ function [Chan1, Chan2] = FFTFilter(Chan1, Chan2, Fs, NoiseFreqs, Bandwidth)
         %Loop over the bins centerd at the peak and replace them with zero
         %As well as the conjugate bins
         for j=peakPos-Bandwidth:peakPos+Bandwidth
+            %var = 'test0'
+            %FFT1(j)
+            %var='test1'
+            %FFT1(length(FFT1)-j-2)
+            %FFT1(length(FFT1)-j-1)
+            %FFT1(length(FFT1)-j)
+            %FFT1(length(FFT1)-j+1)
+            %FFT1(length(FFT1)-j+2)
             FFT1(j) = 0;
-            FFT1(length(FFT1)-j) = 0;
+            FFT1(length(FFT1)-j+2) = 0;
             FFT2(j) = 0;
-            FFT2(length(FFT2)-j) = 0;
+            FFT2(length(FFT2)-j+2) = 0;
         end
 
     end

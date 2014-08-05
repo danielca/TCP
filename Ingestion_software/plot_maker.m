@@ -18,6 +18,8 @@
 %
 %   TODO:
 %       -Add in a FFT filter
+%       -Be smarter about the directory search
+%       -Add search for currpted full files
 %
 %--------------------------------------------------------------------------
 
@@ -79,7 +81,7 @@ for j = 1:length(foundFiles)
     %start reading the data
     fseek(dataFile, i + 0,'bof');
     Info = dir(fileName);
-    Data = fread(dataFile,[Info.bytes 1], 'bit16', 0, 'b'); 
+    Data = fread(dataFile,[1 Info.bytes], 'bit16', 0, 'b'); 
     fseek(dataFile, Info.bytes-10, 'bof');
 
     %Decide if end key check is needed, and what to do with it
@@ -101,27 +103,40 @@ for j = 1:length(foundFiles)
 
     %start making the plots!
     set(gcf, 'Visible', 'off');
-    subplot(4,1,1);
+    subplot(6,1,1);
     spectrogram(Chan1, Window, overLap,windowSize, sampleFreq, 'yaxis');
     colorbar;
     axis([0 maxTime 0 75000]);
-    title('Channel 1');
+    title('North-South');
     
     
-    subplot(4,1,2);
+    subplot(6,1,2);
     spectrogram(Chan2, Window, overLap,windowSize, sampleFreq, 'yaxis');
     colorbar;
     axis([0 timeSerries(end) 0 75000]);
-    title({'','Channel 2'});
+    title({'','East-West'});
 
-    subplot(4,1,3);
+    subplot(6,1,3);
+    spectrogram(Chan1, Window, overLap,windowSize, sampleFreq, 'yaxis');
+    colorbar;
+    axis([0 maxTime 0 10000]);
+    title({'','North-South'});
+    
+    
+    subplot(6,1,4);
+    spectrogram(Chan2, Window, overLap,windowSize, sampleFreq, 'yaxis');
+    colorbar;
+    axis([0 timeSerries(end) 0 10000]);
+    title({'','East-West'});
+    
+    subplot(6,1,5);
     plot(timeSerries, Chan1);
-    title({'','Channel 1',});
+    title({'','Noth-Sout',});
     axis([0 timeSerries(end) -5000 5000]);
     
-    subplot(4,1,4);
+    subplot(6,1,5);
     plot(timeSerries, Chan2);
-    title({'Channel 2',})
+    title({'','East-West'})
     axis([0 timeSerries(end) -5000 5000]);
     
     %Save said plots

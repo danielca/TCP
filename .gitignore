@@ -2,3 +2,4 @@
 *.log
 Header.txt
 Ingestion_software/test.py
+*test.py
