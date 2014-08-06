@@ -376,7 +376,7 @@ def sendToRTEMP(Header, malformed_packets):
         temp = (((float(Header[12])/256)*5)-0.6)*100
         rssi = Header[14]
         V_batt = (float(Header[11])/256)*20
-        V_twelve = (float(Header[10])/256)*15
+        V_twelve = (float(Header[10])/256)*30
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
