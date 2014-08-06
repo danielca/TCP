@@ -363,9 +363,8 @@ def sendToRTEMP(Header, malformed_packets):
     global LAST_PACKET_TIMESTAMP
     global IP_Dict
 
-
     #extracts information
-    #This form is valid for software version 2.1 and previous
+    #This form is valid for header version 2.1 and rev a or b
     if Header[5][-1] == 'a' or Header[5][-1] == 'b':
         version = "2.0"
         project = "above"
@@ -567,6 +566,7 @@ def cleanUp():
                     chunks.remove(lastkey)
                     chunks.insert(0, lastkey)
                     logger.info("Moved 00 to the front of the list!")
+
                 search_file = "%s*" % search_file_name
                 for chunk in chunks:
                     logger.debug("Unpacking file %s" % (str(chunk)))
@@ -640,11 +640,13 @@ def cleanUp():
                                 except IOError, e:
                                     logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
                             break
+
                     Headers.append(header)
                     totalData += data
                     chunkPath = os.path.join(CHUNK_DATA_PATH, hourDir)
                     if not os.path.exists(chunkPath):
                         os.makedirs(chunkPath)
+
                     try:
                         logger.info("Moving %s to %s" % (str(os.path.join(paths, chunk)),
                                                          os.path.join(chunkPath, chunk)))
@@ -666,6 +668,19 @@ def cleanUp():
                     fileCombinationBinary(Data, Headers[0], full_file_path, full_file_name)
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
+                # Double check to make sure no files remain from this set
+                for chunk in chunks:
+                    if os.path.isfile(chunk):
+                        # Check to make sure the directory does exist, otherwise make it
+                        if not os.path.exists(chunkPath):
+                            os.makedirs(chunkPath)
+                        # Move the file to the chunk path
+                        try:
+                            logger.info("Moving file %s" % chunk)
+                            shutil.move(chunk, os.path.join(chunkPath, chunk))
+                        except IOError, e:
+                            logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
+
     #Start this part for recursive checking, disabled for checking
     threading.Timer(TIME_DELAY, cleanUp).start()
 
@@ -677,14 +692,14 @@ def main():
 
 #Main Entry Point
 if __name__ == '__main__':
-    #loggerInit()
-
+    # Check to make sure the path for the PID file exists
     if not os.path.isdir(PID_PATH):
         os.makedirs(PID_PATH)
-
+    # Make the PID file and daemon object
     pidFile = os.path.join(PID_PATH, PID_FILE)
     fileManager = MyDaemon(pidFile)
 
+    # Check the argument passed to the system, and execute the command
     if len(sys.argv) == 2:
         if sys.argv[1] == 'start':
             print "**********************************************************************"
@@ -707,13 +722,15 @@ if __name__ == '__main__':
 
         elif sys.argv[1] == 'main':
             print "**********************************************************************"
-            print "          Starting the file manager script witn no daemon"
+            print "          Starting the file manager script with no daemon"
             print "         Please refer the log file %s/%s" % (LOG_PATH, LOG_FILENAME)
             print "**********************************************************************"
             loggerInit()
             cleanUp()
 
         else:
+            print "Incorrect argument, " \
+                  "Please use ./File_Manager.py start to start the script. See documentation for more detail"
             sys.exit(2)
             sys.exit(0)
 

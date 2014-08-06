@@ -16,6 +16,7 @@ tcp_server/
         This is a sample client script, for the purpose of testing the tcp server
 
 Ingestion_software/
+
     File_Manager.py:
         This script combines the binary chunks into a single file, and moves the data out of the dump directories.
         This script runs periodically, and will also include RTEMP communications in later revisions, as well as summary
@@ -25,9 +26,14 @@ Ingestion_software/
         Simple script that reads in the ip dictionary file saved by the server and prints the list of IP's to the screen
         NOTE: MUST BE PLACED IN THE SAME DIRECTORY AS THE IP DICTONARY
 
+    plot_maker.m, matlabRunner.sh, & FFTFilter.m:
+        These two files are responsible for the sumamry plots. These are started by matlabRunner.sh and is called by a
+        cron job. Currently the entire directory tree is scanned for new plots, however this will be changed to be a
+        little bit smarter.
+
 Both branches contain Daemon.py This file is what allows the scripts to be run in the background.
 
-To start and stop the tcp server and the ingestion scripts in the command line type ./file_name.py start or
+To start and stop the tcp server and the ingestion python scripts in the command line type ./file_name.py start or
 ./file_name.py stop
 
 More documentation is soon to come.
