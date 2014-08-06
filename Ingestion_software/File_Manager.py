@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.5
+ Version: 1.0.6
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -83,6 +83,9 @@
     1.0.5:
         -Removed batt_temp from RTEMP packets
         -converted the voltages and temp to real units
+
+    1.0.6:
+        -Added a double check to make sure all chunk files are indeed moved.
 
 
  Bug tracker:
