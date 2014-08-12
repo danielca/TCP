@@ -45,31 +45,8 @@ Bandwidth = 10;                                        % 10 Bins wide
 %set the logging
 diary logFile;
 
-%Get yesterday's and todays date for the search
-today = now;
-yesterday = addtodate(today, -1, 'day');
-yesterday = datestr(yesterday, 26);
-today = datestr(today,26);
-
-%Break out the components of the date
-year1 = yesterday(1:4);
-month1 = yesterday(6:7);
-day1 = yesterday(9:10);
-year2 = today(1:4);
-month2 = today(6:7);
-day2 = today(9:10);
-
-%Combine the directory files
-datedir1 = [year1 '/' month1 '/' day1];
-datedir2 = [year2 '/' month2 '/' day2];
-
-%Search the subdirectories of root path for the full data files for
-%yesterday and today
-yesterderdayFiles = rdir([rootPath, '/', datedir1, '/**/*Full_Data*.dat']);
-todayFiles = rdir([rootPath, '/', datedir2, '/**/*Full_Data*.dat']);
-
 %Combine the searches
-foundFiles = [yesterdayFiles,todayFiles];
+foundFiles = rdir([rootPath, '/**/*Full_Data*.dat']);
 
 %Loop over all the files
 for j = 1:length(foundFiles)

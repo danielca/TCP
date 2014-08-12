@@ -9,7 +9,7 @@ function [Chan1, Chan2] = FFTFilter(Chan1, Chan2, sampleFreq, NoiseFreqs, Bandwi
     %   A peak search is also preformed to ensure that the peak is being
     %   Removed.
     
-
+    
     %Compute theDFTs
     FFT1 = fft(Chan1);
     FFT2 = fft(Chan2);
