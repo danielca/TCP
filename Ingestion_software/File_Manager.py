@@ -460,16 +460,18 @@ def sendToRTEMP(Header, malformed_packets):
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
-    RTEMP_packet = "instrument %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
+    RTEMP_packet = "instrument %s date %s time %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
                    "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
                    % (str(seconds_epoch)[:-3],  # Seconds since epoch
+                      formattedDate,            # Formatted Date
+                      formattedTime,            # Formatted Time
                       gps_fix,                  # GPS Fix
                       temp,                     # Temp of the main board
                       V_batt,                   # Battery Voltage
                       V_twelve,                 # Voltage of the 12 Volt input
                       V_five,                   # Voltage of the 5 volt input
                       rssi,                     # Wifi signal strength
-                      str(IP_addr),             # IP Address of the instrument
+                      str(IP_addr[:-6]),        # IP Address of the instrument minus the port information
                       str(memory_addr),         # SD memory address
                       str(clock_speed),         # Reported clock speed
                       str(seconds_epoch)[:-3],  # Seconds since epoch

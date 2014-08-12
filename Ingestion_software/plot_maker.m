@@ -7,19 +7,25 @@
 %   Created by: Casey Daniel
 %   Date: 2014/07/31
 %
-%   Version: 0.1.0
+%   Version: 1.0.1
 %
 %   Changelog:
 %       0.1.0:
 %           -N/A
+%       1.0.0:
+%           -Added in an FFT filter notching out ingeter multiples of 60Hz
+%           -Search should now include Partial full files
+%       1.0.1:
+%           -Data now trims the last 5 points instead of depending on the 
+%            FileSize parameter, as that one had a rocky start
+%           -Figures are now saved at a reasonable size
+%           -Other small fixes
 %
 %   Bug Tracker:
 %       -None
 %
 %   TODO:
-%       -Add in a FFT filter
 %       -Be smarter about the directory search
-%       -Add search for currpted full files
 %
 %--------------------------------------------------------------------------
 
@@ -28,8 +34,10 @@ windowSize = 2048;                                     % Window size for the spe
 overLap = windowSize * 0.75;                           % Overlap width  
 sampleFreq = 150000;                                   % Sampling rate, samples/second
 Window = hann(windowSize);                             % Window function for the spectrogram
-rootPath = '/Users/Casey/Desktop/MatlabTest/Data';     % Test root path
-ImmagePath = '/Users/Casey/Desktop/SummaryPlots5';      % Test Path
+%rootPath = '/Users/Casey/Desktop/MatlabTest/Data';    % Test root path
+rootPath = '/data/vlf/full_files';                     % Server root path
+%ImmagePath = '/Users/Casey/Desktop/SummaryPlots';     % Test Path
+ImmagePath = '/data/vlf/summaryPlots';                 % Server immage path
 Bandwidth = 10;                                        % 10 Bins wide
 
 %Main funcion
@@ -61,7 +69,7 @@ for j = 1:length(foundFiles)
     end
     %Check to see if the immage is already made, if so skip it
     if exist(summaryPlotName, 'file') == 2
-        %continue
+        continue
     end
     
     %Open the data file
@@ -69,6 +77,7 @@ for j = 1:length(foundFiles)
     header = blanks(115);
     i = 1;
     dataContents = fread(dataFile);
+    
     %Look for the '}' character
     while i < 115
         char = dataContents(i);
@@ -78,10 +87,11 @@ for j = 1:length(foundFiles)
         end
         i = i + 1;
     end
+    
     %Save the header contents
     header = header(2:i-1);
     headerSplit = strsplit(header,',');
-    fileSize = str2double(headerSplit(17)); 
+    
     %start reading the data
     fseek(dataFile, i + 0,'bof');
     Info = dir(fileName);
@@ -93,35 +103,41 @@ for j = 1:length(foundFiles)
     %endKey = endKey{1}{1};
     fclose(dataFile);
 
-    Data = Data(1:fileSize/2);
+    %Trim the data to the correct size
+    Data = Data(1:end-5);
     
     %Gather the data into the channels
     Chan1 = Data(1:2:end);
     Chan2 = Data(2:2:end);
+    
+    %Define the noise frequency vectore as every 60Hz up to 75KHz
     noiseFreqs = 60:60:75000;
     
     %Filter the data
     [Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq, noiseFreqs, Bandwidth);
     
+    %Compute the spectrograms for each channel 
     [S1, F1, T1] = spectrogram(Chan1, Window, overLap,windowSize, sampleFreq);
     [S2, F2, T2] = spectrogram(Chan2, Window, overLap,windowSize, sampleFreq);
     
     %Make the time serries vector for plotting
     timeSerries = linspace(1, length(Chan1), length(Chan1))/sampleFreq;
     maxTime = length(Chan1)/sampleFreq;
+    
     %Set the values and labels for the y-axis of the spectrograms
     upperVectorValues = [0 15000 30000 45000 60000 75000];
     upperVectorLabels = {'0' '15' '30' '45' '60' '75'};
     lowerVectorValues = [0 2000 4000 6000 8000 10000];
     lowerVectorLabels = {'0' '2' '4' '6' '8' '10'};
     
+    %Set the figure vairables
+    close all;
     fig = figure(1);
     set(gcf, 'Visible', 'off');
-    %set(gcf, 'PaperSize', [30.0 100.0]);
-    %set(fig, 'Position', [0 0 30.0 100.0]);
     
-    %subplot(6,1,1);
-    subplot('position',[0.1 0.81 0.8 0.12]);
+    %Now what you have all been waiting for, the plots!
+    %North-South 0-75Khz Plot
+    subplot('position',[0.08 0.81 0.9 0.12]);
     imagesc(T1, F1, log(abs(S1))); 
     set(gca,'YDir', 'normal');
     colorbar;
@@ -133,8 +149,8 @@ for j = 1:length(foundFiles)
     set(gca,'YTickLabel',upperVectorLabels); 
     title('North-South');
     
-    %subplot(6,1,2);
-    subplot('position', [0.1 0.66 0.8 0.12]);
+    %North-South 0-10KHz plot
+    subplot('position', [0.08 0.66 0.9 0.12]);
     imagesc(T1, F1, log(abs(S1)) ); 
     set(gca,'YDir', 'normal');
     c=colorbar;
@@ -145,11 +161,10 @@ for j = 1:length(foundFiles)
     set(gca,'xticklabel',[])
     set(gca,'YTick',lowerVectorValues);
     set(gca,'YTickLabel',lowerVectorLabels);
-    ylabel('Frequency (KHz)');
-    %title({'North-South'});    
+    ylabel('Frequency (KHz)'); 
     
-    %subplot(6,1,3);
-    subplot('position', [0.1 0.5 0.8 0.12]); 
+    %East-West 0-75KHz Plot
+    subplot('position', [0.08 0.5 0.9 0.12]); 
     imagesc(T2, F2, log(abs(S2)) ); 
     set(gca,'YDir', 'normal');
     colorbar;
@@ -161,8 +176,8 @@ for j = 1:length(foundFiles)
     set(gca,'YTickLabel',upperVectorLabels);
     title('East-West');
         
-    %subplot(6,1,4);
-    subplot('position', [0.1 0.36 0.8 0.12]);
+    %East-West 0-10KHz Plot
+    subplot('position', [0.08 0.36 0.9 0.12]);
     imagesc(T1, F1, log(abs(S1)) ); 
     set(gca,'YDir', 'normal');
     colorbar;
@@ -171,31 +186,32 @@ for j = 1:length(foundFiles)
     set(gca,'YTick',lowerVectorValues);
     set(gca,'YTickLabel',lowerVectorLabels);
     xlabel('Time (Seconds)');
-    %title({'East-West'});
-
-    %subplot(6,1,5);
-    subplot('position', [0.1 0.2 0.706 0.05]);
+    
+    %Time serries North-South
+    subplot('position', [0.08 0.2 0.815 0.05]);
     plot(timeSerries, Chan1);
-    title('Noth-South');
+    title('North-South');
     axis([0 timeSerries(end) -5000 5000]);
     set(gca,'xtick',[])
     set(gca,'xticklabel',[])
     ylabel('Amplitude');
     
-    %subplot(6,1,6)1
-    subplot('position', [0.1 0.1 0.706 0.05]);
+    %Time serries East-West
+    subplot('position', [0.08 0.1 0.815 0.05]);
     plot(timeSerries, Chan2);
     title('East-West')
     axis([0 timeSerries(end) -5000 5000]);
     xlabel('Time (Seconds)');
     
+    %set plot size
+    set(gcf, 'Position', [0 0 600.0 600.0]);
+    set(gcf, 'PaperUnits', 'inches', 'PaperSize', [16.5 12.75], 'PaperPosition', [0 0 16.5 12.75]);
     
     %Save said plots
-    saveas(1,summaryPlotName);
+    print(gcf, summaryPlotName, '-dpng', '-r350'); 
     
-    
+    %Close the plots to prevent memory leaks
     clf;
-    %close('all', hidden);
     close('all');
     
 end
