@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.8
+ Version: 2.1.7
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -83,9 +83,6 @@
    2.1.7:
      -Standard out and standard error are now re-directed to the log file
 
-   2.1.8:
-     -Added in a check for test server constants, because that got really annoying missing a variable
-
 
  TODO:
    -Fix any random bugs that come up.
@@ -112,21 +109,11 @@ from Daemon import Daemon
 ################
 #Constants
 ################
-TestServer = True  # This variable is used to change between the test directories/ports
-if TestServer:
-    LOG_FILENAME = "test_above_vlf_tcp_server.log"
-    ROOT_FILE_PATH = '/data/vlf/test_server'
-    TCP_PORT = 27000
-    PID_FILE = 'Test_TCP_Server.pid'
-    PID_PATH = '/usr/local/src/above/testServer/PID'
-else:
-    LOG_FILENAME = "above_vlf_tcp_server.log"
-    ROOT_FILE_PATH = '/data/vlf'
-    TCP_PORT = 26000
-    PID_FILE = 'TCP_Server.pid'
-    PID_PATH = '/usr/local/src/above/PID'
+
 # globals
+ROOT_FILE_PATH = '/data/vlf'
 TCP_IP = "136.159.51.230"  # Sever IP
+TCP_PORT = 26000
 BUFFER_SIZE = 1024
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
@@ -140,6 +127,7 @@ SOCKET_TIMEOUT_ON_CONNECTION = 60
 SOCKET_TIMEOUT_NORMAL = None
 
 # logging strings
+LOG_FILENAME = "above_vlf_tcp_server.log"
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_PATH = "logs"
@@ -157,6 +145,9 @@ CONTROL_DATA_RESPONSE_NOK = "[CTRL:d-resend]"
 CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]"
 
+#PID file
+PID_FILE = 'TCP_Server.pid'
+PID_PATH = '/usr/local/src/above/PID'
 
 #miscilanious
 PACKET_SIZE_ERROR = 25600000000000000  # 256KB

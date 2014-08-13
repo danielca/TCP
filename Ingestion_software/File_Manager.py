@@ -383,6 +383,21 @@ def sendToRTEMP(Header, malformed_packets):
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
+    else:
+        version = "2.0"
+        project = "above"
+        site = Header[6]
+        device = Header[8]
+        date = Header[0]
+        time = Header[1]
+        gps_fix = Header[3]
+        temp = (((float(Header[12])/256)*5)-0.6)*100
+        rssi = Header[14]
+        V_batt = (float(Header[11])/256)*20
+        V_twelve = (float(Header[10])/256)*30
+        V_five = (float(Header[9])/256)*10
+        clock_speed = Header[13]
+        memory_addr = Header[18]
 
     formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
     formattedDate = "20%s-%s-%s" % (str(date[4:6]), str(date[2:4]), str(date[0:2]))
@@ -546,12 +561,13 @@ def cleanUp():
             os.chdir(paths)
             #search for the first chunk of the file
             for f in sorted(glob.glob("*_00.chunk.dat")):
+
                 Headers = []
                 f = f.split("_")
                 #Get the base file name
-                file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])  # THIS IS A TEMPORARY FIX WHILE CAMROSE
-                                                                       # HAS A GPS TIME ISSUE
-                search_file_name = "%s_%s*" % (f[0], f[1][:-2])
+                file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])
+                search_file_name = "%s_%s*_%s*" % (f[0], f[1][:-2], f[2])  # THIS IS A TEMPORARY FIX WHILE CAMROSE
+                                                                           # HAS A GPS TIME ISSUE
                 #search_file = "%s*" % file_name
                 search_file = "%s*" % search_file_name
                 logger.info("Search file %s" % search_file_name)
@@ -572,7 +588,6 @@ def cleanUp():
                     chunks.insert(0, lastkey)
                     logger.info("Moved 00 to the front of the list!")
 
-                search_file = "%s*" % search_file_name
                 for chunk in chunks:
                     logger.debug("Unpacking file %s" % (str(chunk)))
                     header, data = getHeader(paths, chunk)
