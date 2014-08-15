@@ -1,8 +1,8 @@
 %plot_maker.m This program makes the summary plot
 %
-%   The script will go through all files found below rootPath, find any
-%   full data files and make a summary plot that will be found in the
-%   immage path. This script is meant to be used on the ABOVE server
+%   The script will go through files fromt he previous day and today, 
+%   find any full data files and make a summary plot that will be found in 
+%   the immage path. This script is meant to be used on the ABOVE server.
 %
 %   Created by: Casey Daniel
 %   Date: 2014/07/31
@@ -69,7 +69,7 @@ yesterderdayFiles = rdir([rootPath, '/', datedir1, '/**/*Full_Data*.dat']);
 todayFiles = rdir([rootPath, '/', datedir2, '/**/*Full_Data*.dat']);
 
 %Combine the searches
-foundFiles = [yesterdayFiles,todayFiles];
+foundFiles = [yesterderdayFiles;todayFiles];
 
 %Loop over all the files
 for j = 1:length(foundFiles)
@@ -136,6 +136,12 @@ for j = 1:length(foundFiles)
     %Gather the data into the channels
     Chan1 = Data(1:2:end);
     Chan2 = Data(2:2:end);
+    
+    %check the lengths of Chan1 and Chan2 to ensure they match
+    if length(Chan1) ~= length(Chan2)
+        continue
+    end
+    
     
     %Define the noise frequency vectore as every 60Hz up to 75KHz
     noiseFreqs = 60:60:75000;

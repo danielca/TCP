@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.6
+ Version: 1.0.7
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -86,6 +86,9 @@
 
     1.0.6:
         -Added a double check to make sure all chunk files are indeed moved.
+
+    1.0.7:
+        -Possible fix for files being left in the Raw_Data directory
 
 
  Bug tracker:
@@ -582,11 +585,25 @@ def cleanUp():
                 #Searches for the files, checks to make sure the _00 is not in the last spot in the list
                 #With the GPS bug where the first file has a different second entry then the rest.
                 chunks = sorted(glob.glob(search_file), key=str.lower)
-                if "_00.chunk" in chunks[-1]:
-                    lastkey = chunks[-1]
-                    chunks.remove(lastkey)
-                    chunks.insert(0, lastkey)
-                    logger.info("Moved 00 to the front of the list!")
+                try:
+                    if "_00.chunk" in chunks[-1]:
+                        lastkey = chunks[-1]
+                        chunks.remove(lastkey)
+                        chunks.insert(0, lastkey)
+                        logger.info("Moved 00 to the front of the list!")
+                except IndexError:
+                    logger.warning("Can't move first file, index error")
+                    for curuptedChunk in glob.glob(search_file):
+                                if not os.path.exists(ERROR_PATH):
+                                    os.makedirs(ERROR_PATH)
+
+                                try:
+                                    logger.info("Moving file %s" % curuptedChunk)
+                                    shutil.move(os.path.join(paths, curuptedChunk),
+                                                os.path.join(ERROR_PATH, curuptedChunk))
+                                except IOError, e:
+                                    logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
+                    continue
 
                 for chunk in chunks:
                     logger.debug("Unpacking file %s" % (str(chunk)))
@@ -634,7 +651,7 @@ def cleanUp():
                     #If not all 45 files are present, and the data has been sitting for longer than the time specified
                     #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
                     #There was a small revision to software 2.0 where 15 file chunks were sent instead of 45
-                    if int(numberOfFiles) != int(expectedFiles) or numberOfFiles != 15:
+                    if numberOfFiles != 15:
                         currentTime = datetime.utcnow()
                         fileTime = header[1]
                         fileDate = header[0]
@@ -659,6 +676,8 @@ def cleanUp():
                                                 os.path.join(ERROR_PATH, curuptedChunk))
                                 except IOError, e:
                                     logger.warning("Unable to move chunk %s, error: %s" % (str(curuptedChunk), str(e)))
+                            break
+                        else:
                             break
 
                     Headers.append(header)
