@@ -106,7 +106,7 @@ for j = 1:length(foundFiles)
     dataContents = fread(dataFile);
     
     %Look for the '}' character
-    while i < 115
+    while i < 200
         char = dataContents(i);
         header(i) = char;
         if char == '}'

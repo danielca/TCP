@@ -386,7 +386,7 @@ def sendToRTEMP(Header, malformed_packets):
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
-    else:
+    elif Header[5][-1] == 'c' or Header[5][-1] == 'd':
         version = "2.0"
         project = "above"
         site = Header[6]
@@ -401,9 +401,32 @@ def sendToRTEMP(Header, malformed_packets):
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
+    else:
+        version = "2.0"
+        project = "above"
+        site = Header[6]
+        device = Header[8]
+        date = Header[0]
+        time = Header[1]
+        gps_fix = Header[3]
+        temp = float(Header[12])
+        rssi = Header[14]
+        V_batt = float(Header[11])
+        V_twelve = float(Header[10])
+        V_five = float(Header[9])
+        clock_speed = Header[13]
+        memory_addr = Header[18]
 
-    formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
-    formattedDate = "20%s-%s-%s" % (str(date[4:6]), str(date[2:4]), str(date[0:2]))
+    #Formate the date and time for the packet
+    time_stamp = datetime.utcnow()
+    formattedDate = str(time_stamp)[0:11]
+    formattedTime = str(time_stamp)[11:19]
+
+
+    #Get the time since epoch of the time in the packets
+    t1 = datetime(year=int("20" + date[4:6]), month=int(date[2:4]), day=int(date[0:2]), hour=int(time[0:2]),
+                  minute=int(time[2:4]), second=int(time[4:6]))
+    epochTime = int(Time.mktime(t1.timetuple()))
 
     current_time = datetime.utcnow()
     #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
@@ -478,11 +501,10 @@ def sendToRTEMP(Header, malformed_packets):
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
-    RTEMP_packet = "instrument %s date %s time %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
+    RTEMP_packet = "instrument %s date_time %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
                    "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
                    % (str(seconds_epoch)[:-3],  # Seconds since epoch
-                      formattedDate,            # Formatted Date
-                      formattedTime,            # Formatted Time
+                      epochTime,                # Time since epoch of the data file
                       gps_fix,                  # GPS Fix
                       temp,                     # Temp of the main board
                       V_batt,                   # Battery Voltage
@@ -708,6 +730,7 @@ def cleanUp():
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
                 # Double check to make sure no files remain from this set
+                """
                 for chunk in chunks:
                     if os.path.isfile(chunk):
                         # Check to make sure the directory does exist, otherwise make it
@@ -719,6 +742,7 @@ def cleanUp():
                             shutil.move(chunk, os.path.join(chunkPath, chunk))
                         except IOError, e:
                             logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
+                """
 
     #Start this part for recursive checking, disabled for checking
     threading.Timer(TIME_DELAY, cleanUp).start()
