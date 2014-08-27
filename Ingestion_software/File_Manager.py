@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.7
+ Version: 1.0.8
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -89,6 +89,9 @@
 
     1.0.7:
         -Possible fix for files being left in the Raw_Data directory
+
+    1.0.8:
+        -Fix for the time since epoch being cut a digit short
 
 
  Bug tracker:
@@ -394,10 +397,10 @@ def sendToRTEMP(Header, malformed_packets):
         date = Header[0]
         time = Header[1]
         gps_fix = Header[3]
-        temp = (((float(Header[12])/256)*5)-0.6)*100
+        temp = (((float(Header[12])/256)*5)-0.6)*(100/7)
         rssi = Header[14]
         V_batt = (float(Header[11])/256)*20
-        V_twelve = (float(Header[10])/256)*30
+        V_twelve = (float(Header[10])/256)*45*1.2
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
@@ -419,9 +422,12 @@ def sendToRTEMP(Header, malformed_packets):
 
     #Formate the date and time for the packet
     time_stamp = datetime.utcnow()
-    formattedDate = str(time_stamp)[0:11]
+    formattedDate = str(time_stamp)[0:10]
     formattedTime = str(time_stamp)[11:19]
 
+    #Double check to make sure the time isn't part of the gps fix
+    if len(gps_fix) > 3:
+        gps_fix = gps_fix[:3]
 
     #Get the time since epoch of the time in the packets
     t1 = datetime(year=int("20" + date[4:6]), month=int(date[2:4]), day=int(date[0:2]), hour=int(time[0:2]),
@@ -497,13 +503,13 @@ def sendToRTEMP(Header, malformed_packets):
 
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
-    seconds_epoch = Time.time()
+    seconds_epoch = int(Time.time())
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
     RTEMP_packet = "instrument %s date_time %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
                    "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
-                   % (str(seconds_epoch)[:-3],  # Seconds since epoch
+                   % (str(seconds_epoch),  # Seconds since epoch
                       epochTime,                # Time since epoch of the data file
                       gps_fix,                  # GPS Fix
                       temp,                     # Temp of the main board
@@ -514,7 +520,7 @@ def sendToRTEMP(Header, malformed_packets):
                       str(IP_addr[:-6]),        # IP Address of the instrument minus the port information
                       str(memory_addr),         # SD memory address
                       str(clock_speed),         # Reported clock speed
-                      str(seconds_epoch)[:-3],  # Seconds since epoch
+                      str(seconds_epoch),  # Seconds since epoch
                       str(malformed_packets),   # No. of malformed packets in the set
                       str(resends))             # No. of resent packets in the last 5 min
 
@@ -527,7 +533,7 @@ def sendToRTEMP(Header, malformed_packets):
     #If more information is needed, then the packets are queued appropriately
     if packet_size < MAX_PACKET_SIZE:
         RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch)[:-3],  # Seconds since epoch in UTC
+                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch),  # Seconds since epoch in UTC
                                                    version,             # Version number, 2.0
                                                    project,             # Project, above
                                                    site,                # Site UID
@@ -548,7 +554,7 @@ def sendToRTEMP(Header, malformed_packets):
         numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
         for i in range(0, numberOfPackets):
             RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
-                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch)[:-3],            # Seconds since epoch
+                       "QUEUE_LENGTH %s\n" % (str(seconds_epoch),            # Seconds since epoch
                                                    version,                       # Version, 2.0
                                                    project,                       # project, above
                                                    site,                          # Site UID
