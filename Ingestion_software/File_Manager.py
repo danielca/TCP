@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.8
+ Version: 1.0.9
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -93,6 +93,10 @@
     1.0.8:
         -Fix for the time since epoch being cut a digit short
 
+    1.0.9:
+        -Changed RTEMP timestamp to that of the packet rather than the send time
+        -Fixed RTEMP packet structure
+
 
  Bug tracker:
    -Find away to look for files that are more than just the _00 chunk
@@ -122,7 +126,7 @@ from Daemon import Daemon
 #  Constants
 #################
 #Time Delay between clean-ups
-TIME_DELAY = 60.0 * 5  # 5 min since that's how long between packets being sent
+TIME_DELAY = 60.0 * 2  # 2 min since that's how long between packets being sent
 
 #File Paths
 #RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
@@ -157,7 +161,8 @@ RTEMP_IP = "136.159.51.160"
 RTEMP_PORT = 25000
 MAX_PACKET_SIZE = 1024  # 1Kb
 LAST_PACKET_TIMESTAMP = None
-time_between_packets = 15
+time_between_packets = 45
+packets_sent = 0
 
 #Key Strings
 START_KEY = "Data_Start"
@@ -371,6 +376,7 @@ def sendToRTEMP(Header, malformed_packets):
     global logger
     global LAST_PACKET_TIMESTAMP
     global IP_Dict
+    global packets_sent
 
     #extracts information
     #This form is valid for header version 2.1 and rev a or b
@@ -443,6 +449,7 @@ def sendToRTEMP(Header, malformed_packets):
             Time.sleep(time_between_packets)
     LAST_PACKET_TIMESTAMP = current_time
 
+
     #Loading the latest dictionary from the server, if it is not loadable, then the latest is being written to
     #Else it a dummy variable is sent, this should only happen when testing on another computer, or just starting
     #everything for the first time
@@ -503,7 +510,11 @@ def sendToRTEMP(Header, malformed_packets):
 
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
-    seconds_epoch = int(Time.time())
+    #seconds_epoch = int(Time.time())
+    dateTime = "%s%s" % (str(date), str(time))
+    format = "%y%m%d%H%M%S"
+    seconds_epoch = int(Time.mktime(Time.strptime(dateTime, format)))
+
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
@@ -532,16 +543,17 @@ def sendToRTEMP(Header, malformed_packets):
     #Can be transmitted, the maximum packet size is set to 1024 Bytes.
     #If more information is needed, then the packets are queued appropriately
     if packet_size < MAX_PACKET_SIZE:
+        packets_sent += 1
         RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
                        "QUEUE_LENGTH %s\n" % (str(seconds_epoch),  # Seconds since epoch in UTC
-                                                   version,             # Version number, 2.0
-                                                   project,             # Project, above
-                                                   site,                # Site UID
-                                                   device,              # Device UID
-                                                   formattedDate,       # Date of the file
-                                                   formattedTime,       # Time of the file
-                                                   str(1),              # Packet number 1, since everything fits in one
-                                                   str(0))              # Queue length 0,
+                                              version,             # Version number, 2.0
+                                              project,             # Project, above
+                                              site,                # Site UID
+                                              device,              # Device UID
+                                              formattedDate,       # Date of the file
+                                              formattedTime,       # Time of the file
+                                              str(packets_sent),   # Packet number 1, since everything fits in one
+                                              str(0))              # Queue length 0,
         RTEMP_message = "%s%s" % (RTEMP_header, RTEMP_packet)
         logger.debug("Sending RTEMP Packet %s" % RTEMP_message)
         try:
@@ -551,18 +563,19 @@ def sendToRTEMP(Header, malformed_packets):
             logger.warning("Unable to send RTEMP Packet, error: %s" % str(e))
 
     else:
+        packets_sent += 1
         numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
         for i in range(0, numberOfPackets):
             RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
                        "QUEUE_LENGTH %s\n" % (str(seconds_epoch),            # Seconds since epoch
-                                                   version,                       # Version, 2.0
-                                                   project,                       # project, above
-                                                   site,                          # Site UID
-                                                   device,                        # Device UID
-                                                   date,                          # Date from file
-                                                   time,                          # Time from file
-                                                   str(i),                        # Packet number
-                                                   str(numberOfPackets - i - 1))  # Packets in queue
+                                              version,                       # Version, 2.0
+                                              project,                       # project, above
+                                              site,                          # Site UID
+                                              device,                        # Device UID
+                                              date,                          # Date from file
+                                              time,                          # Time from file
+                                              str(packets_sent),             # Packet number
+                                              str(numberOfPackets - i - 1))  # Packets in queue
             RTEMP_message = "%s%s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
             logger.debug("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
             try:

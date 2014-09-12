@@ -7,7 +7,7 @@
 %   Created by: Casey Daniel
 %   Date: 2014/07/31
 %
-%   Version: 1.0.1
+%   Version: 1.0.2
 %
 %   Changelog:
 %       0.1.0:
@@ -20,6 +20,8 @@
 %            FileSize parameter, as that one had a rocky start
 %           -Figures are now saved at a reasonable size
 %           -Other small fixes
+%       1.0.2:
+%           -Fixed bug where bottom spectrgam was the wrong channel
 %
 %   Bug Tracker:
 %       -None
@@ -162,6 +164,7 @@ for j = 1:length(foundFiles)
     upperVectorLabels = {'0' '15' '30' '45' '60' '75'};
     lowerVectorValues = [0 2000 4000 6000 8000 10000];
     lowerVectorLabels = {'0' '2' '4' '6' '8' '10'};
+    colorRange = [3,15];
     
     %Set the figure vairables
     close all;
@@ -174,7 +177,7 @@ for j = 1:length(foundFiles)
     imagesc(T1, F1, log(abs(S1))); 
     set(gca,'YDir', 'normal');
     colorbar;
-    caxis([5,12]);
+    caxis(colorRange);
     axis([0 maxTime 0 75000]);
     set(gca,'xtick',[])
     set(gca,'xticklabel',[])
@@ -187,7 +190,7 @@ for j = 1:length(foundFiles)
     imagesc(T1, F1, log(abs(S1)) ); 
     set(gca,'YDir', 'normal');
     c=colorbar;
-    caxis([5,12]);
+    caxis(colorRange);
     ylabel(c,'logrithm of Arbitary Units')
     axis([0 maxTime 0 10000]);
     set(gca,'xtick',[])
@@ -201,7 +204,7 @@ for j = 1:length(foundFiles)
     imagesc(T2, F2, log(abs(S2)) ); 
     set(gca,'YDir', 'normal');
     colorbar;
-    caxis([5,12]);
+    caxis(colorRange);
     axis([0 timeSerries(end) 0 75000]);
     set(gca,'xtick',[])
     set(gca,'xticklabel',[])
@@ -211,10 +214,10 @@ for j = 1:length(foundFiles)
         
     %East-West 0-10KHz Plot
     subplot('position', [0.08 0.36 0.9 0.12]);
-    imagesc(T1, F1, log(abs(S1)) ); 
+    imagesc(T2, F2, log(abs(S2)) ); 
     set(gca,'YDir', 'normal');
     colorbar;
-    caxis([5,12]);
+    caxis(colorRange);
     axis([0 timeSerries(end) 0 10000]);
     set(gca,'YTick',lowerVectorValues);
     set(gca,'YTickLabel',lowerVectorLabels);
