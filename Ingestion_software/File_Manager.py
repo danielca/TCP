@@ -121,6 +121,7 @@ import socket
 import time as Time
 import pickle
 from Daemon import Daemon
+import calendar
 
 #################
 #  Constants
@@ -511,9 +512,8 @@ def sendToRTEMP(Header, malformed_packets):
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
     #seconds_epoch = int(Time.time())
-    dateTime = "%s%s" % (str(date), str(time))
-    format = "%y%m%d%H%M%S"
-    seconds_epoch = int(Time.mktime(Time.strptime(dateTime, format)))
+    dateTime = datetime.strptime("%s%s" % (str(date), str(time[:6])), "%y%m%d%H%M%S")
+    seconds_epoch = calendar.timegm(dateTime.timetuple())
 
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
@@ -564,7 +564,7 @@ def sendToRTEMP(Header, malformed_packets):
 
     else:
         packets_sent += 1
-        numberOfPackets = packet_size%MAX_PACKET_SIZE + 1
+        numberOfPackets = packet_size % MAX_PACKET_SIZE + 1
         for i in range(0, numberOfPackets):
             RTEMP_header = "monitor %s version %s project %s site %s device %s date %s time %s PACKET_NUMBER %s " \
                        "QUEUE_LENGTH %s\n" % (str(seconds_epoch),            # Seconds since epoch
@@ -577,7 +577,7 @@ def sendToRTEMP(Header, malformed_packets):
                                               str(packets_sent),             # Packet number
                                               str(numberOfPackets - i - 1))  # Packets in queue
             RTEMP_message = "%s%s" % (RTEMP_header, RTEMP_packet[i*MAX_PACKET_SIZE:(i+1) * MAX_PACKET_SIZE])
-            logger.debug("Sending RTEMP packet %s/%s %" % (str(i), str(numberOfPackets), RTEMP_message))
+            logger.debug("Sending RTEMP packet %s/%s %s" % (str(i), str(numberOfPackets), RTEMP_message))
             try:
                 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 soc.sendto(RTEMP_message, (RTEMP_IP, RTEMP_PORT))
