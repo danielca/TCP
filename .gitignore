@@ -5,3 +5,6 @@ Ingestion_software/test.py
 *test.py
 test_tcp_server.py
 test_file_manager.py
+tcp_server_27000.py
+Testpage.html
+ABOVE_TCP.iml

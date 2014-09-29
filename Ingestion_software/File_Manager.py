@@ -428,9 +428,9 @@ def sendToRTEMP(Header, malformed_packets):
         memory_addr = Header[18]
 
     #Formate the date and time for the packet
-    time_stamp = datetime.utcnow()
-    formattedDate = str(time_stamp)[0:10]
-    formattedTime = str(time_stamp)[11:19]
+    #time_stamp = datetime.utcnow()
+    #formattedDate = str(time_stamp)[0:10]
+    #formattedTime = str(time_stamp)[11:19]
 
     #Double check to make sure the time isn't part of the gps fix
     if len(gps_fix) > 3:
@@ -512,16 +512,25 @@ def sendToRTEMP(Header, malformed_packets):
 
     #seconds since epoch in UTC, this is to be sent to RTEMP following the monitor key
     #seconds_epoch = int(Time.time())
-    dateTime = datetime.strptime("%s%s" % (str(date), str(time[:6])), "%y%m%d%H%M%S")
+    timeStamp = "%s%s" % (str(date), str(time[:6]))
+    timeStampFormat = "%d%m%y%H%M%S"
+    print date
+    print time
+    print timeStamp
+    dateTime = datetime.strptime(timeStamp, timeStampFormat)
     seconds_epoch = calendar.timegm(dateTime.timetuple())
+    formattedDate = "20%s-%s-%s" % (str(date[4:6]), str(date[2:4]), str(date[0:2]))
+    formattedTime = "%s:%s:%s" % (str(time[0:2]), str(time[2:4]), str(time[4:6]))
+
+
 
     #Assembles the basic information required
     #To change the data sent, simply change this string. Key values and data are separated by a single space
     #Make sure you tell Darren as well
     RTEMP_packet = "instrument %s date_time %s gps_fix %s temp %s V_batt %s V_12 %s V_5 %s rssi %s IP_addr %s " \
                    "memory_addr %s clk_speed %s \nserver %s mal_packets %s no_resends %s " \
-                   % (str(seconds_epoch),  # Seconds since epoch
-                      epochTime,                # Time since epoch of the data file
+                   % (str(seconds_epoch),       # Seconds since epoch
+                      str(seconds_epoch),       # Time since epoch of the data file
                       gps_fix,                  # GPS Fix
                       temp,                     # Temp of the main board
                       V_batt,                   # Battery Voltage

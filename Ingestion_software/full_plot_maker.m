@@ -73,7 +73,7 @@ for j = 1:length(foundFiles)
     end
     %Check to see if the immage is already made, if so skip it
     if exist(summaryPlotName, 'file') == 2
-        %continue
+        continue
     end
     
     %Open the data file
@@ -113,6 +113,10 @@ for j = 1:length(foundFiles)
     %Gather the data into the channels
     Chan1 = Data(1:2:end);
     Chan2 = Data(2:2:end);
+    
+    if length(Chan1) ~= length(Chan2)
+        continue
+    end
     
     %Define the noise frequency vectore as every 60Hz up to 75KHz
     noiseFreqs = 60:60:75000;
