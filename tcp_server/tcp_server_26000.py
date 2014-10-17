@@ -16,9 +16,9 @@
     Cleanup of these files will be handled by other processes.
 
  Directions:
-    To start the server simply call ./tcp_server.py start
+    To start the server simply call ./tcp_server_26000.py start
     To stop the server call ./tcp_server stop
-    If a restart is needed call ./tcp_server.py restart
+    If a restart is needed call ./tcp_server_26000.py restart
 
  Changelog:
    1.9.0:
@@ -84,6 +84,7 @@
      -Standard out and standard error are now re-directed to the log file
 
 
+
  TODO:
    -Fix any random bugs that come up.
 
@@ -105,6 +106,7 @@ from threading import Thread
 import threading
 import pickle
 from Daemon import Daemon
+import select
 
 ################
 #Constants
@@ -119,15 +121,16 @@ YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
 threadCount = 0
 fileChunksReceived = 0
+RECV_TIMEOUT = 5
 logger = None
 IP_dict = {}
 
 # socket globals
-SOCKET_TIMEOUT_ON_CONNECTION = 60
+SOCKET_TIMEOUT_ON_CONNECTION = None
 SOCKET_TIMEOUT_NORMAL = None
 
 # logging strings
-LOG_FILENAME = "above_vlf_tcp_server.log"
+LOG_FILENAME = "above_vlf_tcp_server_%s.log" % str(TCP_PORT)
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_PATH = "logs"
@@ -146,13 +149,13 @@ CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]"
 
 #PID file
-PID_FILE = 'TCP_Server.pid'
+PID_FILE = 'TCP_Server_%s.pid' % str(TCP_PORT)
 PID_PATH = '/usr/local/src/above/PID'
 
 #miscilanious
-PACKET_SIZE_ERROR = 25600000000000000  # 256KB
+PACKET_SIZE_ERROR = 25600000000000000  # ~256KB
 DATA_STOP_KEY = "Data_Stop"
-CONNECTION_TIMEOUT = 60*10
+CONNECTION_TIMEOUT = 60*5
 DATA_RESEND_CUTOFF = 3
 
 
@@ -160,6 +163,7 @@ DATA_RESEND_CUTOFF = 3
 class MyDaemon(Daemon):
     def run(self):
         main()
+
 
 class StreamToLogger(object):
    """
@@ -173,6 +177,7 @@ class StreamToLogger(object):
    def write(self, buf):
       for line in buf.rstrip().splitlines():
          self.logger.log(self.log_level, line.rstrip())
+
 
 ##################################
 # initialize the logging file
@@ -211,7 +216,7 @@ def initLogging():
     sys.stderr = errorStream
     
     # return
-    return 0
+    return
  
 
 ##################################
@@ -291,10 +296,10 @@ def writeDataToFile(data, hsk, threadNum):
         logger.info("THREAD-%s: Wrote data to individual chunk file '%s'" % (str(threadNum), fullFilename))
     except IOError, e:
         logger.error("THREAD-%s: IOError when writing data to individual chunk file: %s" % (str(threadNum), str(e)))
-        return 1
+        return
     
     # return
-    return 0
+    return
 
 
 ##################################
@@ -335,7 +340,6 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
         packetBuff = conn.recv(BUFFER_SIZE)
         packet += packetBuff
         packetNo += 1
-        logger.debug("THREAD-%s: Received packet %d (%d Bytes)" % (str(threadNum), packetNo, len(packetBuff)))
         #Total connection timeout
         if time.time() > timeout:
             logger.warning("THREAD-%s: Connection has been established longer than %s seconds, closing connection" %
@@ -370,6 +374,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
             dataFiles += 1
             header += packet[len(CONTROL_HSK_RECEIVE):]
             #recieve loop
+            #THREAD BUG HERE?!?!?!?!?!?!
             while 1:
                 #check for controll close
                 if CONTROL_CLOSE in header:
@@ -380,6 +385,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     logger.info("THREAD-%s: Connection has been established longer than %s seconds, closing connection"
                                 % (str(threadNum), str(CONNECTION_TIMEOUT)))
                     return dataResends
+
 
                 #Check to see if controll wakeup, if so restart
                 if header.endswith(CONTROL_WAKEUP_CALL_RECEIVE):
@@ -414,6 +420,8 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                         logger.info("THREAD-%s: received header %s" % (str(threadNum), header))
 
                             #Checks to see if the IP is known
+                        recvData = True
+
                         if siteUID in IP_dict.keys():
                             knownIP = IP_dict.get(siteUID)
                             currentIP = "%s:%s" % (addr[0], addr[1])
@@ -448,14 +456,18 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                             dataResends += 1
                             header = ""
                             return dataResends
-
-                    break
+                        else:
+                            logger.warning("THREAD-%s Making another attempt at the header")
+                            conn.send(CONTROL_DATA_RESPONSE_NOK)
+                            header = ""
+                            packet = ""
+                            packetBuff = ""
+                    if recvData:
+                        break
                 #recieve more characters
                 chars = conn.recv(BUFFER_SIZE)
                 header += chars
                 packetNo += 1
-                logger.debug("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo,
-                                                                          sys.getsizeof(chars)))
                 #Check blank packet
                 if chars == "":
                     logger.warning("THREAD-%s: Connection unexpectedly closed" % str(threadNum))
@@ -468,8 +480,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 char = conn.recv(BUFFER_SIZE)
                 packetNo += 1
                 data += char
-                logger.debug("THREAD-%s: Received packet %d (%d bytes)" % (str(threadNum), packetNo,
-                                                                            sys.getsizeof(char)))
+
                 #Check for control close
                 if CONTROL_CLOSE in header:
                     logger.info("THREAD-%s: Received close control message, now closing the connection" %
@@ -592,7 +603,7 @@ def processConnection(threadNum, conn, addr, socket):
         while 1:
             chars = conn.recv(BUFFER_SIZE)
             packetCount += 1
-            logger.info("THREAD-%s: Received packet of size %d" % (str(threadNum), len(chars)))
+            #logger.info("THREAD-%s: Received packet of size %d" % (str(threadNum), len(chars)))
             packet += chars
 
             if time.time() > timeout:
@@ -609,36 +620,30 @@ def processConnection(threadNum, conn, addr, socket):
                 break
 
             if packet.endswith(CONTROL_WAKEUP_CALL_RECEIVE):
+                socket.settimeout(SOCKET_TIMEOUT_ON_CONNECTION)
                 conn.send(CONTROL_WAKEUP_CALL_SEND)
                 logger.info("THREAD-%s: Received wakeup call: '%s' and sending response, starting data connection '%s'"
                             % (str(threadNum), packet, CONTROL_WAKEUP_CALL_SEND))
-                dataResend = dataConnection(threadNum, conn, addr, socket, packetCount)
-
-                dataResends += dataResend
+                dataResends += dataConnection(threadNum, conn, addr, socket, packetCount)
+                socket.settimeout(None)
                 break
             if len(packet) > PACKET_SIZE_ERROR:
-                logger.warning("THREAD-%s: Packet length is oddly large, closing connection, STOP FAILING HERE"
+                logger.warning("THREAD-%s: Packet length is oddly large, closing connection"
                                % str(threadNum))
                 break
 
 
         # close connection
-        logger.info("THREAD-%s: Safely closing connection" % str(threadNum))
-        conn.close()
-        packet = ""
 
-        logger.debug("++++++++++++++")
+
+        packet = ""
+        socket.settimeout(None)
+
     except SocketError, e:
-        logger.error("THREAD-%s: Socket error: %s" % (str(threadNum), str(e)))
-        try:
-            conn.close()
-            logger.info("THREAD-%s: Safely closed connection" % str(threadNum))
-        except Exception, e:
-            logger.error("THREAD-%s: Error closing connection after socket error" % str(threadNum))
-        logger.debug("++++++++++++++")
-                # return
-        socket.settimeout(SOCKET_TIMEOUT_NORMAL)
+        logger.error("THREAD-%s: Socket error here2: %s" % (str(threadNum), str(e)))
+
         threadCount -= 1
+
         if dataResends > 0:
             try:
                 if not os.path.isdir(os.path.join(ROOT_FILE_PATH, "Dictionary")):
@@ -647,10 +652,19 @@ def processConnection(threadNum, conn, addr, socket):
                 f.write("%s,%s" % (str(time.time()), str(dataResends)))
             except IOError, e:
                 logger.warning("THREAD-%s: Unable to write to data resend, error: %s", (str(threadNum), str(e)))
-        return 1
+
+        try:
+            logger.info("THREAD-%s: Safely closing connection2" % str(threadNum))
+            conn.close()
+            socket.settimeout(SOCKET_TIMEOUT_NORMAL)
+            logger.info("THREAD-%s: Safely closed connection2" % str(threadNum))
+        except Exception, e:
+            logger.error("THREAD-%s: Error closing connection after socket error3" % str(threadNum))
+
+        return
         
-    # return
-    socket.settimeout(SOCKET_TIMEOUT_NORMAL)
+    #return
+
     if dataResends > 0:
         try:
             f = open(os.path.join(ROOT_FILE_PATH, "Dictionary", "DataResends.txt"), 'w+')
@@ -658,8 +672,19 @@ def processConnection(threadNum, conn, addr, socket):
             f.close()
         except IOError, e:
             logger.warning("THREAD-%s: Unable to write to data resend, error: %s", (str(threadNum), str(e)))
+
     threadCount -= 1
-    return 0
+    logger.info("THREAD-%s: Safely closing connection1" % str(threadNum))
+    socket.settimeout(None)
+    conn.close()
+
+    #Check to limit the number of threads active.
+    if threadNum > 15:
+        time.sleep(120)
+        os.system("./usr/local/src/above/tcp_server/tcp_server_26000.py restart")
+        #TCP_server.restart()
+
+    return
 
 
 #################################
@@ -704,21 +729,27 @@ def main():
             newThread = Thread(target=processConnection,  args=(activeThreads, conn, addr, s))
             newThread.start()
             #thread.start_new_thread(processConnection, (threadCount, conn, addr, s))
+
         except SocketError, e:
-            logger.error("Socket error: " + str(e))
+            logger.debug("++++++++++++++")
+            logger.error("Socket error or maybe here: " + str(e))
+            print "Current timeout set to ", s.gettimeout()
             try:
+                s.settimeout(SOCKET_TIMEOUT_NORMAL)
                 conn.close()
                 logger.info("Safely closed connection")
-            except Exception:
-                logger.error("Error closing connection after socket error")
+            except Exception, e:
+                logger.error("Error closing connection after socket error %s" % str(e))
             logger.debug("++++++++++++++")
         except KeyboardInterrupt:
             logger.error("Keyboard interrupt encountered, quitting ... ")
             exit(0)
+
             
 
 # main entry point
 if __name__ == "__main__":
+    #global TCP_server
     if not os.path.isdir(PID_PATH):
         os.makedirs(PID_PATH)
     pidFile = os.path.join(PID_PATH, PID_FILE)
@@ -727,7 +758,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         if sys.argv[1] == 'start':
             print "**********************************************************************"
-            print "              Starting the file manager script"
+            print "       Starting the tcp server port %s script" % str(TCP_PORT)
             print " Please refer the log file %s/%s/%s" % (ROOT_FILE_PATH, LOG_PATH, LOG_FILENAME)
             print "**********************************************************************"
             TCP_server.start()
@@ -753,4 +784,4 @@ if __name__ == "__main__":
             sys.exit(0)
 
     else:
-        print "Please use ./tcp_server.py start to start the script. See documentation for more detail"
+        print "Please use ./tcp_server_%s.py start to start the script. See documentation for more detail" % str(TCP_PORT)

@@ -39,7 +39,7 @@ import struct
 
 #Ip Inofrmation
 TCP_ADDR = "136.159.51.230"
-TCP_PORT = 27000
+TCP_PORT = 25000
 BUFFER_SIZE = 1024
 
 #Control Strings

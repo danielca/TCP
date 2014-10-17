@@ -7,7 +7,7 @@
 %   Created by: Casey Daniel
 %   Date: 2014/07/31
 %
-%   Version: 1.0.2
+%   Version: 1.0.3
 %
 %   Changelog:
 %       0.1.0:
@@ -22,6 +22,8 @@
 %           -Other small fixes
 %       1.0.2:
 %           -Fixed bug where bottom spectrgam was the wrong channel
+%       1.0.3:
+%           -Changed file name structure so that seconds is now excluded
 %
 %   Bug Tracker:
 %       -None
@@ -64,19 +66,17 @@ day2 = today(9:10);
 %Combine the directory files
 datedir1 = [year1 '/' month1 '/' day1];
 datedir2 = [year2 '/' month2 '/' day2];
-
+display('I have actually started')
 %Search the subdirectories of root path for the full data files for
 %yesterday and today
 yesterderdayFiles = rdir([rootPath, '/', datedir1, '/**/*Full_Data*.dat']);
-todayFiles = rdir([rootPath, '/', datedir2, '/**/*Full_Data*.dat']);
+todayFiles = rdir([rootPath, '/**/*Full_Data*.dat']);
 
 %Combine the searches
 foundFiles = [yesterderdayFiles;todayFiles];
-
 %Loop over all the files
 for j = 1:length(foundFiles)
-    fileName = foundFiles(j).name; % File path an name
-    
+fileName = foundFiles(j).name; % File path an name
     %extract the actual file name from the path
     pos = strfind(fileName,'/');
     pos = pos(end);
@@ -85,12 +85,11 @@ for j = 1:length(foundFiles)
     else
         summaryFileName = fileName(pos+1:end-14);
     end
-    
     %Make the date path, append to the root immage path, and create a root
     %immage path
     datePath = [summaryFileName(1:4) '/' summaryFileName(5:6) '/' summaryFileName(7:8) '/' summaryFileName(17:20) '/' summaryFileName(10:11)];
     summaryPlotPath = [ImmagePath '/' datePath];
-    summaryPlotName = [summaryPlotPath '/' summaryFileName, '_summary_plot.png'];
+    summaryPlotName = [summaryPlotPath '/' summaryFileName(1:12), summaryFileName(15:end) '_summary_plot.png'];
     
     %Check to see if the immage path is a directory, if not make one
     if exist(summaryPlotPath, 'dir') ~= 7
@@ -98,7 +97,7 @@ for j = 1:length(foundFiles)
     end
     %Check to see if the immage is already made, if so skip it
     if exist(summaryPlotName, 'file') == 2
-        continue
+        %continue
     end
     
     %Open the data file
@@ -149,7 +148,7 @@ for j = 1:length(foundFiles)
     noiseFreqs = 60:60:75000;
     
     %Filter the data
-    [Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq, noiseFreqs, Bandwidth);
+    %[Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq, noiseFreqs, Bandwidth);
     
     %Compute the spectrograms for each channel 
     [S1, F1, T1] = spectrogram(Chan1, Window, overLap,windowSize, sampleFreq);
@@ -170,6 +169,8 @@ for j = 1:length(foundFiles)
     close all;
     fig = figure(1);
     set(gcf, 'Visible', 'off');
+    set(gca, 'FontSize', 100, 'fontWeight', 'bold');
+    set(findall(gcf,'type','text'),'FontSize',100,'fontWeight','bold');
     
     %Now what you have all been waiting for, the plots!
     %North-South 0-75Khz Plot
@@ -183,8 +184,8 @@ for j = 1:length(foundFiles)
     set(gca,'xticklabel',[])
     set(gca,'YTick', upperVectorValues);
     set(gca,'YTickLabel',upperVectorLabels); 
-    title('North-South');
-    
+    title({[summaryFileName(1:4) '-' summaryFileName(5:6) '-' summaryFileName(7:8) ' ' summaryFileName(10:11) ':' summaryFileName(12:13) ':' summaryFileName(14:15) ' ' summaryFileName(17:20)],'North-South'});
+    %20140714_175009_cmrs_above
     %North-South 0-10KHz plot
     subplot('position', [0.08 0.66 0.9 0.12]);
     imagesc(T1, F1, log(abs(S1)) ); 
@@ -241,7 +242,7 @@ for j = 1:length(foundFiles)
     
     %set plot size
     set(gcf, 'Position', [0 0 600.0 600.0]);
-    set(gcf, 'PaperUnits', 'inches', 'PaperSize', [16.5 12.75], 'PaperPosition', [0 0 16.5 12.75]);
+    set(gcf, 'PaperUnits', 'inches', 'PaperSize', [15.0 10.6], 'PaperPosition', [0 0 15.0 10.6]);
     
     %Save said plots
     print(gcf, summaryPlotName, '-dpng', '-r350'); 
