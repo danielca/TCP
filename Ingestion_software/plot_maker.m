@@ -33,12 +33,15 @@
 %
 %--------------------------------------------------------------------------
 
+%cap the number of matlab threads
+
+LASTN = maxNumCompThreads(1);
+
 %Constants
 windowSize = 2048;                                     % Window size for the spectrogram
 overLap = windowSize * 0.75;                           % Overlap width  
 sampleFreq = 150000;                                   % Sampling rate, samples/second
 Window = hann(windowSize);                             % Window function for the spectrogram
-logFile = 'data/vlf/logs/plot_maker_log.txt';          % Logging file
 %rootPath = '/Users/Casey/Desktop/MatlabTest/Data';    % Test root path
 rootPath = '/data/vlf/full_files';                     % Server root path
 %ImmagePath = '/Users/Casey/Desktop/SummaryPlots';     % Test Path
@@ -47,7 +50,6 @@ Bandwidth = 10;                                        % 10 Bins wide
 
 %Main funcion
 %set the logging
-diary logFile;
 
 %Get yesterday's and todays date for the search
 today = now;
@@ -69,14 +71,14 @@ datedir2 = [year2 '/' month2 '/' day2];
 display('I have actually started')
 %Search the subdirectories of root path for the full data files for
 %yesterday and today
-yesterderdayFiles = rdir([rootPath, '/', datedir1, '/**/*Full_Data*.dat']);
-todayFiles = rdir([rootPath, '/**/*Full_Data*.dat']);
+yesterderdayFiles = rdir([rootPath, '/', datedir1, '/**/*Full_Data.dat']);
+todayFiles = rdir([rootPath, '/**/*Full_Data.dat']);
 
 %Combine the searches
 foundFiles = [yesterderdayFiles;todayFiles];
 %Loop over all the files
 for j = 1:length(foundFiles)
-fileName = foundFiles(j).name; % File path an name
+    fileName = foundFiles(j).name; % File path an name
     %extract the actual file name from the path
     pos = strfind(fileName,'/');
     pos = pos(end);
@@ -89,7 +91,7 @@ fileName = foundFiles(j).name; % File path an name
     %immage path
     datePath = [summaryFileName(1:4) '/' summaryFileName(5:6) '/' summaryFileName(7:8) '/' summaryFileName(17:20) '/' summaryFileName(10:11)];
     summaryPlotPath = [ImmagePath '/' datePath];
-    summaryPlotName = [summaryPlotPath '/' summaryFileName(1:12), summaryFileName(15:end) '_summary_plot.png'];
+    summaryPlotName = [summaryPlotPath '/' summaryFileName(1:13), summaryFileName(16:27) , '_summary_plot.png'];
     
     %Check to see if the immage path is a directory, if not make one
     if exist(summaryPlotPath, 'dir') ~= 7
@@ -97,8 +99,9 @@ fileName = foundFiles(j).name; % File path an name
     end
     %Check to see if the immage is already made, if so skip it
     if exist(summaryPlotName, 'file') == 2
-        %continue
+        continue
     end
+    display(summaryPlotName)
     
     %Open the data file
     dataFile = fopen(fileName);
@@ -184,6 +187,7 @@ fileName = foundFiles(j).name; % File path an name
     set(gca,'xticklabel',[])
     set(gca,'YTick', upperVectorValues);
     set(gca,'YTickLabel',upperVectorLabels); 
+    
     title({[summaryFileName(1:4) '-' summaryFileName(5:6) '-' summaryFileName(7:8) ' ' summaryFileName(10:11) ':' summaryFileName(12:13) ':' summaryFileName(14:15) ' ' summaryFileName(17:20)],'North-South'});
     %20140714_175009_cmrs_above
     %North-South 0-10KHz plot
@@ -242,18 +246,18 @@ fileName = foundFiles(j).name; % File path an name
     
     %set plot size
     set(gcf, 'Position', [0 0 600.0 600.0]);
-    set(gcf, 'PaperUnits', 'inches', 'PaperSize', [15.0 10.6], 'PaperPosition', [0 0 15.0 10.6]);
+    set(gcf, 'PaperUnits', 'inches', 'PaperSize', [8.0 5.6], 'PaperPosition', [0 0 8 5.6]);
     
+    break
     %Save said plots
-    print(gcf, summaryPlotName, '-dpng', '-r350'); 
+    print(gcf, summaryPlotName, '-dpng', '-r150'); 
     
     %Close the plots to prevent memory leaks
     clf;
     close('all');
     
 end
-%Close the logging
-diary off;
+
 
 %We now conclude this script, thank you for your time.
 %We know you have a choice in your scripts and we thank you for your patron

@@ -150,7 +150,7 @@ CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]"
 
 #PID file
 PID_FILE = 'TCP_Server_%s.pid' % str(TCP_PORT)
-PID_PATH = '/usr/local/src/above/PID'
+PID_PATH = '/data/vlf/PID'
 
 #miscilanious
 PACKET_SIZE_ERROR = 25600000000000000  # ~256KB

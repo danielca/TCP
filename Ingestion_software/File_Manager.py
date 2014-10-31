@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.9
+ Version: 1.0.10
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -97,6 +97,9 @@
         -Changed RTEMP timestamp to that of the packet rather than the send time
         -Fixed RTEMP packet structure
 
+    1.0.10:
+        -Force time bewteen RTEMP packets
+
 
  Bug tracker:
    -Find away to look for files that are more than just the _00 chunk
@@ -162,7 +165,7 @@ RTEMP_IP = "136.159.51.160"
 RTEMP_PORT = 25000
 MAX_PACKET_SIZE = 1024  # 1Kb
 LAST_PACKET_TIMESTAMP = None
-time_between_packets = 45
+time_between_packets = 5
 packets_sent = 0
 
 #Key Strings
@@ -171,7 +174,7 @@ START_KEY = "Data_Start"
 #miscilanious
 IP_Dict = {}  # IP Dictionary, barr entry put in for testing purposes
 RESEND_TIME = 300  # Seconds for the number of resends to be noted
-PID_PATH = '/usr/local/src/above/PID'
+PID_PATH = '/data/vlf/PID'
 PID_FILE = 'FileManager.pid'
 
 
@@ -595,6 +598,7 @@ def sendToRTEMP(Header, malformed_packets):
             #Ensures we don't overload the server
             Time.sleep(time_between_packets)
 
+    Time.sleep(time_between_packets)  # Force the time between packets
     return
 
 

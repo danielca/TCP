@@ -2,7 +2,7 @@
 <html>
 
 <!-- 
- ABOVE web viewer 0.1.0
+ ABOVE web viewer 0.2.0
  Created by: Casey Daniel
  Date: 15 Oct 2014
  This page is designed to be insterted into the ABOVE webpage and serve as a summary plot viewer.
@@ -13,9 +13,19 @@
   0.0.1:
     -N/A
 
-  0.1.0:
+  0.1.1:
     -Added in an onError method. If a picture can't load, it will look through the remaining day to check for more plots
     -Made the ftp server IP a constant
+
+  0.1.2:
+    -onError now accounts for the direction you were trying to go
+
+
+  0.2.0:
+    -Page now searches for one hour before defaulting to an availability plot
+    -can now check and scroll through availability plots
+    -fixed back button search
+    -Go button works properly now
  -->
 
 <head>
@@ -198,15 +208,15 @@ span label {
             <button id = "Go"> GO! </button>
             <button id = "Back"> <<< </button>
             <button id = "Forward"> >>> </button>
-            <label for="increment_ammount"> Step By: </label><select id = "increment_ammount">
-                <option value = "5">5 miniutes</option>
-                <option value = "1">1 miniute</option>
-            </select>
+            <button id = "availCheck">Check Availability</button>
+            <button id = "prevAvail">Previous Month's Availability</button>
+            <button id = "nextAvail">Next Month's Availability</button>
         </form>
     </section>
     <section>
 
     <!-- Image -->
+
 	<IMG id = "Plot" SRC="" sytle="width: 100%;" onerror = "onError()">
     </section>
 
@@ -221,13 +231,17 @@ span label {
 	var Min;
 	var FTPString;
     var IPAddr = "136.159.51.230:21";
+    var Direction = 1;
+    var minChecked = 0;
+    var availPlot = false;
 
 
 	function get_plot() {
 	    event.preventDefault();
-
+        availPlot = false;
+        var minChecked = 0;
 	    Year = document.getElementById("year").value;
-	    Month = document.getElementById("month").value - 1;
+	    Month = document.getElementById("month").value;
 	    Day = document.getElementById("day").value;
 	    Hour = document.getElementById("hour").value;
 	    Min = document.getElementById("min").value;
@@ -239,12 +253,14 @@ span label {
 	    }
 
 	    FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Day + "/" + Site.substr(0,4) + "/" + Hour + "/" + Year + Month + Day + "_" + Hour + Min + "_" + Site + "_summary_plot.png";
-	    document.getElementById("Plot").src = FTPString;
+	    console.log(FTPString);
+        document.getElementById("Plot").src = FTPString;
 	}
 	
 	function next_plot_one() {
 	    event.preventDefault();
-
+        availPlot = false;
+        var minChecked = 0;
 	    Year = document.getElementById("year").value;
 	    Month = document.getElementById("month").value - 1;
 	    Day = document.getElementById("day").value;
@@ -252,16 +268,17 @@ span label {
 	    Min = document.getElementById("min").value;
 	    Site = document.getElementById("site").value;
 
+        //Reset the direction incase of an error
+        Direction = 1;
+
 	    // Check to make sure all values are entered
 	    if (Year === '' || Month === '' || Day === '' || Hour === '' || Site === '' || Min === '') {
 	        alert("Please ensure all values are values are entered");
 	    }
-
-	    var incrementBy = document.getElementById("increment_ammount").value;
 	    //Convert to a date object and add the incremented time
 	    var newDate = new Date(Date.UTC(Year, Month, Day, Hour, Min));
 	    //var newDate = new Date(date.getTime() + (incrementBy * 60000));
-	    newDate.setTime(newDate.getTime() + (incrementBy*60*1000));
+	    newDate.setTime(newDate.getTime() + (60*1000));
 	    var dateString = newDate.toISOString();
 
 	    //set the new time
@@ -272,14 +289,15 @@ span label {
 	    document.getElementById("hour").value = dateString.substr(11,2);
 	    document.getElementById("min").value = dateString.substr(14,2);
 
-	    //Something here for the FTP
-	    // Reload the strings from selection
-	    Year = document.getElementById("year").value;
-	    Month = document.getElementById("month").value;
-	    Day = document.getElementById("day").value;
-	    Hour = document.getElementById("hour").value;
-	    Site = document.getElementById("site").value;
-	    Min = document.getElementById("min").value;
+
+        Year = dateString.substr(0,4);
+        Month = dateString.substr(5,2);
+        Day = dateString.substr(8,2);
+        Hour = dateString.substr(11,2);
+        Min = dateString.substr(14,2);
+
+        Month = "0" + Month;
+        Month = Month.slice(-2);
 
 	    FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Day + "/" + Site.substr(0,4) + "/" + Hour + "/" + Year + Month + Day + "_" + Hour + Min + "_" + Site + "_summary_plot.png";
 	    document.getElementById("Plot").src = FTPString;
@@ -288,7 +306,8 @@ span label {
 
 	function previous_plot_one() {
 	    event.preventDefault();
-
+        availPlot = false;
+        var minChecked = 0;
 		Year = document.getElementById("year").value;
 	    Month = document.getElementById("month").value - 1;
 	    Day = document.getElementById("day").value;
@@ -296,19 +315,21 @@ span label {
 	    Min = document.getElementById("min").value;
 	    Site = document.getElementById("site").value;
 
+        //Reset the direction incase of no plot found
+
+        Direction = -1;
+
 	    // Check to make sure all values are entered
 	    if (Year === '' || Month === '' || Day === '' || Hour === '' || Site === '' || Min === '') {
 	        alert("Please ensure all values are values are entered");
 	    }	   
 
-	    
-	    var incrementBy = document.getElementById("increment_ammount").value;
+
 	    //Convert to a date object and add the incremented time
 	    var newDate = new Date(Date.UTC(Year, Month, Day, Hour, Min));
 	    //var newDate = new Date(date.getTime() + (incrementBy * 60000));
-	    newDate.setTime(newDate.getTime() - (incrementBy*60*1000));
+	    newDate.setTime(newDate.getTime() - (60*1000));
 	    var dateString = newDate.toISOString();
-	    console.log("New Date " + dateString);
 
 	    //set the new time
 	    //Note the whole getDate and other related things are weired and it's far more reliable to just use the string. -.-
@@ -318,17 +339,16 @@ span label {
 	    document.getElementById("hour").value = dateString.substr(11,2);
 	    document.getElementById("min").value = dateString.substr(14,2);
 
-	    //Something here for the FTP
-
-	    // Reload the strings from selection
-	    Year = document.getElementById("year").value;
-	    Month = document.getElementById("month").value;
-	    Day = document.getElementById("day").value;
-	    Hour = document.getElementById("hour").value;
-	    Min = document.getElementById("min").value;
-	    Site = document.getElementById("site").value;
+        Year = dateString.substr(0,4);
+        Month = dateString.substr(5,2);
+        Day = dateString.substr(8,2);
+        Hour = dateString.substr(11,2);
+        Min = dateString.substr(14,2);
 
 
+
+        Month = "0" + Month;
+        Month = Month.slice(-2);
 
 	    FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Day + "/" + Site.substr(0,4) + "/" + Hour + "/" + Year + Month + Day + "_" + Hour + Min + "_" + Site + "_summary_plot.png";
 	    document.getElementById("Plot").src = FTPString;
@@ -337,6 +357,7 @@ span label {
     function onError() {
         event.preventDefault();
         console.log("Hi")
+        minChecked += 1;
         // get the currect selection
         Year = document.getElementById("year").value;
 	    Month = document.getElementById("month").value -1;
@@ -345,16 +366,35 @@ span label {
 	    Min = document.getElementById("min").value;
 	    Site = document.getElementById("site").value;
 
+        //Check for blank feilds
         if (Year === '' || Month === '' || Day === '' || Hour === '' || Site === '' || Min === '') {
 	    //    alert("Unknown Error, please try entering the information again");
+
 	        return;
         }
+
+        //check to see if the an attempt was made at finding the availability chart
+        if (availPlot) {
+            alert("Unable to find data or the availability chart, Please try again later");
+            return;
+        }
+
+        //Check to see if an hour has been searched
+        if (minChecked > 59) {
+            availPlot = true;
+            Month = "0" + Month;
+            Month = Month.slice(-2);
+            FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Year + "-" + Month + "-availability.png";
+            document.getElementById("Plot").src = FTPString;
+            alert("Unable to find data, please refer to the availability chart");
+            return;
+        }
+
         var currentDate = new Date();
 	    //Convert to a date object and add the incremented time
 	    var newDate = new Date(Date.UTC(Year, Month, Day, Hour, Min));
-	    newDate.setTime(newDate.getTime() + 60000);
+	    newDate.setTime(newDate.getTime() + (60000*Direction));
 	    var dateString = newDate.toISOString();
-        console.log(dateString);
 
         //set the new time
 	    //Note the whole getDate and other related things are weired and it's far more reliable to just use the string. -.-
@@ -363,52 +403,93 @@ span label {
 	    document.getElementById("day").value = dateString.substr(8,2);
 	    document.getElementById("hour").value = dateString.substr(11,2);
 	    document.getElementById("min").value = dateString.substr(14,2);
-        console.log("TEST" + " " + dateString.substr(14,2));
-
-        if (dateString.substr(11,2) == '00'){
-            console.log("Well why not here")
-            if (dateString.substr(8,2) != Day){
-                console.log("looks good here???")
-            }
-        }
-
-        if (currentDate < newDate) {
-            alert("There is no new data to display, please make another selection");
-            document.getElementById("Plot").src = "";
-            return;
-        }
-
-        // This function will only look until the end of the day
-        console.log(dateString.substr(11,2) + " " + dateString.substr(8,2) + " " + Day);
-        if ((dateString.substr(11,2) == "00") && (dateString.substr(8,2) != Day)) {
-            alert("There is no remaining data for this day, please try another day or site");
-            document.getElementById("Plot").src = "";
-            return;
-        }
 
         // Check to see if the time is from the future. (Sorry no time travelers)
+        if (currentDate < newDate) {
+            alert("There is no new data to display, please make another selection");
+            return;
+        }
 
 
 
+        Year = dateString.substr(0,4);
+        Month = dateString.substr(5,2);
+        Day = dateString.substr(8,2);
+        Hour = dateString.substr(11,2);
+        Min = dateString.substr(14,2);
 
-	    //Something here for the FTP
-
-	    // Reload the strings from selection
-	    Year = document.getElementById("year").value;
-	    Month = document.getElementById("month").value;
-	    Day = document.getElementById("day").value;
-	    Hour = document.getElementById("hour").value;
-	    Min = document.getElementById("min").value;
-	    Site = document.getElementById("site").value;
-
-
+        Month = "0" + Month;
+        Month = Month.slice(-2);
 
 	    FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Day + "/" + Site.substr(0,4) + "/" + Hour + "/" + Year + Month + Day + "_" + Hour + Min + "_" + Site + "_summary_plot.png";
 	    document.getElementById("Plot").src = FTPString;
 
     }
 
+    //Function to reset the counter when the image is loaded
+    function imageLoaded() {
+        minChecked = 0;
+        availPlot = false;
 
+    }
+
+    function checkAvail(){
+        event.preventDefault();
+        Year = document.getElementById("year").value;
+        Month = document.getElementById("month").value;
+        availPlot = true;
+        FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Year + "-" + Month + "-availability.png";
+        document.getElementById("Plot").src = FTPString;
+
+    }
+
+    function prevAvailCheck() {
+        event.preventDefault();
+        Year = document.getElementById("year").value;
+        Month = document.getElementById("month").value;
+        availPlot = true;
+
+        if (Month == '01') {
+            Year = String(parseInt(Year, 10) - 1);
+            Month = '12'
+        } else {
+            Month = String(parseInt(Month, 10) -1);
+            Month = '0' + Month;
+            Month = Month.slice(-2);
+        }
+
+        document.getElementById("year").value = Year;
+        document.getElementById("month").value = Month;
+
+        FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Year + "-" + Month + "-availability.png";
+        document.getElementById("Plot").src = FTPString;
+
+    }
+
+    function nextAvailCheck() {
+        event.preventDefault();
+        Year = document.getElementById("year").value;
+        Month = document.getElementById("month").value;
+        availPlot = true;
+
+        if (Month == '12') {
+            Year = String(parseInt(Year, 10) + 1);
+            Month = '01'
+        } else {
+            Month = String(parseInt(Month, 10) + 1);
+            Month = '0' + Month;
+            Month = Month.slice(-2);
+        }
+
+        document.getElementById("year").value = Year;
+        document.getElementById("month").value = Month;
+
+        FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Year + "-" + Month + "-availability.png";
+        document.getElementById("Plot").src = FTPString;
+
+    }
+
+    //Add listners for all the buttons. There are a number of buttons.... Also an onload for the plot to reset counters
     var goButton = document.getElementById("Go");
     if (goButton.addEventListener)
         goButton.addEventListener("click", get_plot, false);
@@ -426,6 +507,34 @@ span label {
 		BackButton.addEventListener("click", previous_plot_one, false);
 	else if (BackButton.attachEvent)
 		forwardButton.attachEvent('onClick', previous_plot_one);
+
+    var imageCheck = document.getElementById("Plot");
+    if (imageCheck.addEventListener)
+        imageCheck.addEventListener('load', imageLoaded, false);
+    else if (imageCheck.attachEvent)
+        imageCheck.attachEvent('onLoad', imageLoaded);
+
+    var availCheck = document.getElementById("availCheck");
+    if (availCheck.addEventListener) {
+        availCheck.addEventListener("click", checkAvail, false);
+    } else if (availCheck.attachEvent) {
+        availCheck.attachEvent("onClick", checkAvail);
+    }
+
+    var nextAvail = document.getElementById("nextAvail");
+    if (nextAvail.addEventListener) {
+        nextAvail.addEventListener("click", nextAvailCheck, false);
+    } else if (nextAvail.attachEvent) {
+        nextAvail.attachEvent("onClick", nextAvailCheck);
+    }
+
+    var prevAvail = document.getElementById("prevAvail");
+    if (prevAvail.addEventListener) {
+        prevAvail.addEventListener("click", prevAvailCheck, false);
+    } else if (prevAvail.attachEvent) {
+        prevAvail.addEventListener("onClick", prevAvailCheck);
+    }
+
 
 	</script>
 	
