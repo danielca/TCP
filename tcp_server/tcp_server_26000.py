@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  TCP Server Script
- Version: 2.1.7
+ Version: 2.1.8
 
  Author: Darren Chaddock
  Created: 2014/02/27
@@ -82,6 +82,9 @@
 
    2.1.7:
      -Standard out and standard error are now re-directed to the log file
+
+   2.1.8:
+    -Potential fix for the case where the control string is stuffed into the same packet as the data_stop key
 
 
 
@@ -494,10 +497,17 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     return dataResends
 
                 #Check data stop key
-                if data.endswith(DATA_STOP_KEY) or data.endswith("Data_Stop\0"):
+                if DATA_STOP_KEY in data or "Data_Stop\0" in data:
                     #conn.send(CONTROL_DATA_RESPONSE_OK)
-                    logger.info("THREAD-%s: Finished data file %s/%s" % (str(threadNum), str(int(chunkNumber)+1),
+                    if data.endswith(DATA_STOP_KEY) or data.endswith("Data_stop\0"):
+                        logger.info("THREAD-%s: Finished data file %s/%s" % (str(threadNum), str(int(chunkNumber)+1),
                                                                          str(TotalChunks)))
+                    else:
+                        for l in range(len(data)-1, 0, -1):
+                            if data[l] == "[":
+                                command = data[l:]
+                                data = data[:l]
+                                packet += command
                     IncomingData = False
                     break
                 #Check for blank packet
@@ -507,7 +517,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                     return dataResends
 
                 #Check to see for wakup command
-                if data.endswith(CONTROL_WAKEUP_CALL_RECEIVE):
+                if CONTROL_WAKEUP_CALL_RECEIVE in data:
                     logger.warning("THREAD-%s: Received the wake up call again, attempting the connection again" %
                                    str(threadNum))
                     conn.send(CONTROL_WAKEUP_CALL_SEND)

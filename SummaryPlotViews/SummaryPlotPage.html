@@ -2,7 +2,7 @@
 <html>
 
 <!-- 
- ABOVE web viewer 0.2.0
+ ABOVE web viewer 0.2.1
  Created by: Casey Daniel
  Date: 15 Oct 2014
  This page is designed to be insterted into the ABOVE webpage and serve as a summary plot viewer.
@@ -10,22 +10,25 @@
  This is a W.I.P.
 
  Change Log:
-  0.0.1:
-    -N/A
+    0.0.1:
+        -N/A
 
-  0.1.1:
-    -Added in an onError method. If a picture can't load, it will look through the remaining day to check for more plots
-    -Made the ftp server IP a constant
+    0.1.1:
+        -Added in an onError method. If a picture can't load, it will look through the remaining day to check for more plots
+        -Made the ftp server IP a constant
 
-  0.1.2:
-    -onError now accounts for the direction you were trying to go
+    0.1.2:
+        -onError now accounts for the direction you were trying to go
 
 
-  0.2.0:
-    -Page now searches for one hour before defaulting to an availability plot
-    -can now check and scroll through availability plots
-    -fixed back button search
-    -Go button works properly now
+    0.2.0:
+        -Page now searches for one hour before defaulting to an availability plot
+        -can now check and scroll through availability plots
+        -fixed back button search
+        -Go button works properly now
+
+    0.2.1:
+        -Updated fort smith name
  -->
 
 <head>
@@ -55,7 +58,6 @@ span label {
             <label for="year">Year: </label><select id="year">
                 <option value = "">-  Year  -</option>
                 <option value = "2014">2014</option>
-                <option value = "2015">2015</option>
             </select>
             <label for="month"> Month: </label><select id = "month">
                 <option value = "">-  Month  -</option>
@@ -201,8 +203,8 @@ span label {
                 <option value = "barr_vlf-01">Barrier Lake</option>
                 <option value = "cmrs_vlf-02">Camrose</option>
                 <option value = "atha_vlf-03">Athabasca</option>
-                <option value = "pina_vlf-04">Pinnawa</option>
-                <option value = "smth_vlf-05">Fort Smith</option>
+                <option value = "pina_vlf-04">Pinawa</option>
+                <option value = "fsmi_vlf-05">Fort Smith</option>
             </select>
 
             <button id = "Go"> GO! </button>
@@ -217,7 +219,7 @@ span label {
 
     <!-- Image -->
 
-	<IMG id = "Plot" SRC="" sytle="width: 100%;" onerror = "onError()">
+	<IMG id = "Plot" SRC="" height = "1200" width = "840" onerror = "onError()">
     </section>
 
 	<!-- Javascript will be here -->
@@ -253,7 +255,6 @@ span label {
 	    }
 
 	    FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Day + "/" + Site.substr(0,4) + "/" + Hour + "/" + Year + Month + Day + "_" + Hour + Min + "_" + Site + "_summary_plot.png";
-	    console.log(FTPString);
         document.getElementById("Plot").src = FTPString;
 	}
 	
@@ -356,7 +357,6 @@ span label {
 
     function onError() {
         event.preventDefault();
-        console.log("Hi")
         minChecked += 1;
         // get the currect selection
         Year = document.getElementById("year").value;
@@ -378,10 +378,10 @@ span label {
             alert("Unable to find data or the availability chart, Please try again later");
             return;
         }
-
         //Check to see if an hour has been searched
         if (minChecked > 59) {
             availPlot = true;
+            Month += 1;
             Month = "0" + Month;
             Month = Month.slice(-2);
             FTPString = "ftp://Anonymous@" + IPAddr +"/" + Year + "/" + Month + "/" + Year + "-" + Month + "-availability.png";
