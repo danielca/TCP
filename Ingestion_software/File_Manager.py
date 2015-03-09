@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.10
+ Version: 1.0.12
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -98,7 +98,13 @@
         -Fixed RTEMP packet structure
 
     1.0.10:
-        -Force time bewteen RTEMP packets
+        -Force time between RTEMP packets
+    1.0.11:
+        -calibrations for temp, 5V, 12V, and Vbatt have all be updated
+        -Now using a dict for the known site instruments, rather than looking in the header.
+        -another except around the dictionary handling.
+
+
 
 
  Bug tracker:
@@ -170,6 +176,10 @@ packets_sent = 0
 
 #Key Strings
 START_KEY = "Data_Start"
+
+#Site Dictionary
+#Stores the instrument id and the board revision. This should be updated along side the hardware at the site.
+site_dict = {"vlf-01": "a", "vlf-02": "b", "vlf-03": "c", "vlf-04": "c", "vlf-05": "d"}
 
 #miscilanious
 IP_Dict = {}  # IP Dictionary, barr entry put in for testing purposes
@@ -382,9 +392,11 @@ def sendToRTEMP(Header, malformed_packets):
     global IP_Dict
     global packets_sent
 
+    site_rev = site_dict[Header[8]]
+
     #extracts information
     #This form is valid for header version 2.1 and rev a or b
-    if Header[5][-1] == 'a' or Header[5][-1] == 'b':
+    if site_rev == 'a' or site_rev == 'b':
         version = "2.0"
         project = "above"
         site = Header[6]
@@ -399,7 +411,7 @@ def sendToRTEMP(Header, malformed_packets):
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
-    elif Header[5][-1] == 'c' or Header[5][-1] == 'd':
+    elif site_rev == 'c':
         version = "2.0"
         project = "above"
         site = Header[6]
@@ -407,10 +419,25 @@ def sendToRTEMP(Header, malformed_packets):
         date = Header[0]
         time = Header[1]
         gps_fix = Header[3]
-        temp = (((float(Header[12])/256)*5)-0.6)*(100/7)
+        temp = ((float(Header[12])/51)*100) - 126.7
         rssi = Header[14]
-        V_batt = (float(Header[11])/256)*20
-        V_twelve = (float(Header[10])/256)*45*1.2
+        V_batt = (float(Header[11])/255)*20
+        V_twelve = (float(Header[10])/255)
+        V_five = (float(Header[9])/256)*10
+        clock_speed = Header[13]
+        memory_addr = Header[18]
+    elif site_rev == 'd':
+        version = "2.0"
+        project = "above"
+        site = Header[6]
+        device = Header[8]
+        date = Header[0]
+        time = Header[1]
+        gps_fix = Header[3]
+        temp = ((float(Header[12])/51)*100) - 126.7
+        rssi = Header[14]
+        V_batt = (float(Header[11])/255)*20
+        V_twelve = (float(Header[10])/255)
         V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
@@ -422,11 +449,11 @@ def sendToRTEMP(Header, malformed_packets):
         date = Header[0]
         time = Header[1]
         gps_fix = Header[3]
-        temp = float(Header[12])
+        temp = ((float(Header[12])/51)*100) - 126.7
         rssi = Header[14]
-        V_batt = float(Header[11])
-        V_twelve = float(Header[10])
-        V_five = float(Header[9])
+        V_batt = (float(Header[11])/255)*20
+        V_twelve = (float(Header[10])/255)
+        V_five = (float(Header[9])/256)*10
         clock_speed = Header[13]
         memory_addr = Header[18]
 
@@ -463,11 +490,13 @@ def sendToRTEMP(Header, malformed_packets):
         IP_addr = IP_Dict[Header[6]]
         ips.close()
     except IOError, e:
-        logger.debug("Unable to load IP dictionary, error: %s" % str(e))
+        logger.warning("Unable to load IP dictionary, error: %s" % str(e))
         if len(IP_Dict) == 0:
             IP_addr = "0.0.0:0"
         else:
             IP_addr = IP_Dict[Header[6]]
+    except EOFError, e:
+        logger.warning("Unexpected error: %s" % str(e))
     except KeyError:
         IP_addr = "0.0.0:0"
 
@@ -660,6 +689,10 @@ def cleanUp():
                     continue
 
                 for chunk in chunks:
+                    #check to make sure the chunk is still there
+                    if not os.path.isfile(os.path.join(paths, chunk)):
+                        continue
+
                     logger.debug("Unpacking file %s" % (str(chunk)))
                     header, data = getHeader(paths, chunk)
 
@@ -719,7 +752,11 @@ def cleanUp():
                             logger.warning(
                                 "Found file set with missing chunks more than an hour old, moving file set, found %s "
                                 "Files, expected %s" % (numberOfFiles, str(expectedFiles)))
-                            sendToRTEMP(header, numberOfFiles)
+                            try:
+                                sendToRTEMP(header, numberOfFiles)
+                            except Exception:
+                                logger.error("Error in sendint packet to RTEMP")
+                                logger.debug("Error: " + sys.exc_info()[0])
                             for curuptedChunk in glob.glob(search_file):
                                 if not os.path.exists(ERROR_PATH):
                                     os.makedirs(ERROR_PATH)

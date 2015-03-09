@@ -6,8 +6,9 @@ using namespace std;
 
 //string dataLocation = "/dev/rdisk2";  // Variable for the mounting point of the SD Card.
 string dataLocation = "/Volumes/Untitled/data/smith_data_backup.dat";  // Test location
-int sectorSize = 512;
-unsigned long bytesRead = 0;
+unsigned long long int sectorSize = 512;
+unsigned long long int bytesRead = 0;
+long long int sdSize = 128000000000;
 string outDir = "/Volumes/Untitled/data/readData/";
 char data_stop[10] = "Data_Stop";
 
@@ -155,6 +156,7 @@ char* findHeader(char* inputData) {
     char* header = new char[i+1];
     memcpy(header, &inputData[0], (size_t) (i +1));
     header[i+1] = '\0';
+
     return header;
 }
 
@@ -163,7 +165,6 @@ void WriteData(std::ifstream& file_stream, char* data) {
     string time = "";
     string site = "";
     string intId = "";
-    string totalFiles = "";
     string fileNo = "";
     string fileSize = "";
 
@@ -172,7 +173,7 @@ void WriteData(std::ifstream& file_stream, char* data) {
 
     //loop over the header to find the date, time, site ID, Instrument ID, and expected file size.
     int commasFound = 0;
-    for(int i = 1; header[i] |= '}', i++;) {
+    for(int i = 1; header[i] |= '\0', i++;) {
 
         // increment the number of commas that have been found
         if (header[i] == ',') {
@@ -206,13 +207,15 @@ void WriteData(std::ifstream& file_stream, char* data) {
         if (commasFound == 8) {
             intId += header[i];
         }
-        if (commasFound == 16) {
+        if (commasFound == 15) {
             fileSize += header[i];
         }
-        if (commasFound == 17) {
-            totalFiles += header[i];
-        }
 
+        if (site == "piwa") {
+            site = "pina";
+        } else if (site == "smth") {
+            site = "fsmi";
+        }
 
         //paranoia of infinite loops
         if (i > 150) {
@@ -220,21 +223,30 @@ void WriteData(std::ifstream& file_stream, char* data) {
         }
     }
 
-
     string formattedDate = "20" + date.substr(4,2) + date.substr(2,2) + date.substr(0,2);
     // Read in the data size
-    int fileSizeInt = atoi(fileSize.c_str()) * atoi(totalFiles.c_str());
+    int fileSizeInt = atoi(fileSize.c_str());
     if (fileSizeInt > 600000) {
-        cout << "WHATTTTT FILE SIZE OF " << fileSize << '\n';
+        cout << "WHATTTTT FILE SIZE OF " << fileSize << " "<< date << " " << time << '\n';
         fileSizeInt = 600000;
     }
-    char *binaryData = new char[fileSizeInt];
+
+    char *binaryData = (char*) malloc((size_t) fileSizeInt);
+    //char* binaryData = new char[fileSizeInt + 1];
     file_stream.read(binaryData, fileSizeInt);
     bytesRead += fileSizeInt;
 
-    string dateDir = outDir + formattedDate.substr(0,4) + "/" + date.substr(2,2) + "/" + site + "/" + date.substr(0,2) + "/";
+    if (site == "piwa") {
+        site = "pina";
+    } else if (site == "smth") {
+        site = "fsmi";
+    }
+
+    string dateDir = outDir + formattedDate.substr(0,4) + "/" + date.substr(2,2) + "/" + date.substr(0,2) + "/" + site
+            + "/" + time.substr(0,2) + "/";
+
     string fileName = dateDir + formattedDate + "_" + time + "_" + site + "_" + intId + "_Full_Data.dat";
-    //cout << fileName << '\n';
+    cout << fileName << '\n';
 
     //create the directory with the date.
     string mkdirCommand = "mkdir -p " + dateDir;
@@ -249,7 +261,8 @@ void WriteData(std::ifstream& file_stream, char* data) {
         ofstream outFile;
         outFile.open(fileName.c_str());
         outFile.write(header, strlen(header));
-        outFile.write(binaryData, sizeof(binaryData));
+        //outFile.write(binaryData, sizeof(binaryData));
+        outFile.write(binaryData, fileSizeInt);
         outFile.write(data_stop, sizeof(data_stop));
         outFile.close();
     } catch (ofstream::failure e ) {
@@ -257,14 +270,15 @@ void WriteData(std::ifstream& file_stream, char* data) {
     }
 
     //read till the start of the next sector
-    int nextSector = (int) ceil(((double) bytesRead)/512.0);
-    int startOfNextSector;
+    unsigned long long int nextSector = (unsigned long long int) ceil(((double) bytesRead)/(double) sectorSize);
+    unsigned long long int startOfNextSector;
     startOfNextSector = nextSector * 512;
     //cout << startOfNextSector << '\n';
-    int bytesToRead = (int) (startOfNextSector - bytesRead);
+    unsigned long long int bytesToRead =  (startOfNextSector - bytesRead);
     char dump[bytesToRead];
-    file_stream.read(dump, bytesToRead);
+    file_stream.read(dump, (int) bytesToRead);
     bytesRead += bytesToRead;
+    free(binaryData);
 }
 
 int main() {
@@ -282,14 +296,14 @@ int main() {
            // cout << "test" << '\n';
         }
 
-        char* data = new char[sectorSize]; // figure out a decent size for this.....
+        char* data = (char*) malloc((size_t) sectorSize); // figure out a decent size for this.....
 
 
         try {
 
             // read the data file... this will be fun
             //cout << "Reading the data file" << '\n';
-            file_stream.read(data, sectorSize);
+            file_stream.read(data, (int) sectorSize);
             bytesRead += sectorSize;
 
             if (data[0] == '{') {
@@ -302,6 +316,9 @@ int main() {
 
             } else {
                 //cout << "no start here....." << bytesRead << '\n';
+                if (bytesRead > sdSize) {
+                    break;
+                }
             }
 
         }
@@ -310,9 +327,10 @@ int main() {
             break;
         }
 
-        delete data;
+        free(data);
 
     }
     file_stream.close();
+    cout << "Completed Data Extraction";
     return 0;
 }
