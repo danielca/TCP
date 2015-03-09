@@ -3,6 +3,7 @@
 #include <math.h>
 
 /*
+    version: 1.0
     sd_reader.pp
     Created By: Casey Daniel
     Date:March 2015
@@ -18,6 +19,10 @@
     There are also 2 optional arguments.
     -hf to fix the header information if it is known that some fields are incorect, as in the first 2 rounds of SD cards
     -sd SDSIZE to change the sd card size from the defaule 128GB.
+
+    Changelog:
+        1.0:
+            First working version.
  */
 
 using namespace std;
@@ -365,7 +370,7 @@ int main(int argc, char* argv[]) {
     }
 
     //check to make sure there not null
-    if (outDir == NULL || dataLocation == NULL) {
+    if (!&outDir || !&dataLocation) {
         cout << "Could not find a valid input and/or out directory. Please see the documentation to correctly format this input";
         return 1;
     }
