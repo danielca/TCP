@@ -738,7 +738,6 @@ def main():
             logger.info("Found %s active threads" % str(activeThreads))
             newThread = Thread(target=processConnection,  args=(activeThreads, conn, addr, s))
             newThread.start()
-            #thread.start_new_thread(processConnection, (threadCount, conn, addr, s))
 
         except SocketError, e:
             logger.debug("++++++++++++++")

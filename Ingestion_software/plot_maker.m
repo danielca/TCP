@@ -153,10 +153,12 @@ for j = 1:length(foundFiles)
     %Filter the data
     %[Chan1, Chan2 ] = FFTFilter(Chan1, Chan2, sampleFreq, noiseFreqs, Bandwidth);
     
-    %Compute the spectrograms for each channel 
-    [S1, F1, T1] = spectrogram(Chan1, Window, overLap,windowSize, sampleFreq);
-    [S2, F2, T2] = spectrogram(Chan2, Window, overLap,windowSize, sampleFreq);
-    
+    %Compute the spectrograms for each channel
+    try
+        [S1, F1, T1] = spectrogram(Chan1, Window, overLap,windowSize, sampleFreq);
+        [S2, F2, T2] = spectrogram(Chan2, Window, overLap,windowSize, sampleFreq);
+    catch ME
+        contine
     %Make the time serries vector for plotting
     timeSerries = linspace(1, length(Chan1), length(Chan1))/sampleFreq;
     maxTime = length(Chan1)/sampleFreq;
