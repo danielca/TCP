@@ -2,7 +2,7 @@
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  File Manager Script
- Version: 1.0.12
+ Version: 1.1.0
 
  Created by: Casey Daniel
  Date: 13/05/2014
@@ -104,6 +104,9 @@
         -Now using a dict for the known site instruments, rather than looking in the header.
         -another except around the dictionary handling.
 
+    1.1.0:
+        -Added the Phase script by Eric Davis
+
 
 
 
@@ -122,7 +125,8 @@ import logging
 import logging.handlers
 import os
 import glob
-import struct
+import automatedPhaseServerScriptFinal as phase
+from threading import Thread
 import shutil
 from datetime import datetime
 import sys
@@ -139,23 +143,15 @@ import calendar
 TIME_DELAY = 60.0 * 2  # 2 min since that's how long between packets being sent
 
 #File Paths
-#RAW_FILE_PATH = "/data/vlf/testServer/testRawData"                  # Server test path
-RAW_FILE_PATH = "/data/vlf/RawData"                       # Sever Root Path
+RAW_FILE_PATH = "/data/vlf/RawData"
+CHUNK_DATA_PATH = "/data/vlf/chunks"
+FULL_DATA_PATH = "/data/vlf/full_files"
+ERROR_PATH = "/data/vlf//malformeFiles"
 
-CHUNK_DATA_PATH = "/data/vlf/chunks"                               # server path
-#CHUNK_DATA_PATH = "/data/vlf/testServer/Chunks"                     # Server test path
 
-FULL_DATA_PATH = "/data/vlf/full_files"                            # server path
-#FULL_DATA_PATH = "/data/vlf/testServer/FullFiles"                   # Server test path
-
-ERROR_PATH = "/data/vlf//malformeFiles"                            # Server Path
-#ERROR_PATH = "/data/vlf/testServer/BadFiles"                        # Server test path
-
-#ROOT_FILE_PATH = "/data/vlf/testServer"
 ROOT_FILE_PATH = "/data/vlf"
 
 # logging strings
-#LOG_PATH = "/data/vlf/testServer/logs"  # Server test path
 LOG_PATH = "/data/vlf/logs"  # Server Path
 
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
@@ -643,6 +639,7 @@ def cleanUp():
     """
     global logger
     logger.info("Starting clean up")
+    fileList = []
     for paths, dirs, files in os.walk(RAW_FILE_PATH):
             os.chdir(paths)
             #search for the first chunk of the file
@@ -787,6 +784,7 @@ def cleanUp():
                 if CuruptedFiles == 0:
                     full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
                     full_file_name = "%sFull_Data.dat" % file_name
+                    fileList.append(full_file_name)
                 else:
                     full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
                     full_file_name = "%sFull_Data-%s.dat" % (file_name, str(CuruptedFiles))
@@ -799,19 +797,16 @@ def cleanUp():
                     sendToRTEMP(Headers[0], CuruptedFiles)
 
                 # Double check to make sure no files remain from this set
-                """
-                for chunk in chunks:
-                    if os.path.isfile(chunk):
-                        # Check to make sure the directory does exist, otherwise make it
-                        if not os.path.exists(chunkPath):
-                            os.makedirs(chunkPath)
-                        # Move the file to the chunk path
-                        try:
-                            logger.info("Moving file %s" % chunk)
-                            shutil.move(chunk, os.path.join(chunkPath, chunk))
-                        except IOError, e:
-                            logger.warning("Unable to move chunk %s, error: %s" % (str(chunk), str(e)))
-                """
+
+
+    #Start Eric's phase script in a new thread
+    try:
+        logger.info("Starting the phase script in new thread")
+        newThread = Thread(target=phase.totalphase,  args=(fileList, logger))
+        newThread.start()
+    except:
+        e = sys.exc_info()[0]
+        logger.error("Occured error " + str(e))
 
     #Start this part for recursive checking, disabled for checking
     threading.Timer(TIME_DELAY, cleanUp).start()
