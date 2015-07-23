@@ -28,6 +28,11 @@
    0.9.0: 
     -first trial run on server
 
+   0.9.1:
+    - touch up on directory and filename
+    
+    
+
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 """
 import matplotlib
@@ -39,9 +44,6 @@ import math
 from scipy import fft, ifft, real, pi, sin, cos, arctan, ptp
 import numpy as np
 import logging
-
-#Constant
-logging = None
 
 def plots(filename,frange,n,slist):
     ant1 = np.zeros(n)   # Establishing the arrays 
@@ -136,7 +138,7 @@ def plots(filename,frange,n,slist):
         da = [None]
         si  = [None]
         red = 'no' 
-        logging.error('Could not open file %s',filename)
+        logging.error('Could not open file %s' % filename)
     return ant1,ant2, tarr, fft1, fft2, sampf, isot, head, ye, mo, da, si, red
 
 
@@ -271,8 +273,9 @@ def operationbitclock(ubitphase,lbitphase,lefile):
 
 ####### This is the function that calls all the others defined above
 def totalphase(filelist, logger):
-
+    global logging
     logging = logger
+    logging.info("This is a test")
 
     ################ ESTABLISHING CONSTANTS #####################
     sitelist = ['atha','barr','cmrs','fsmi','pina']  # SITLELIST AS OF 02/27/2015. WILLL NEED TO UPDATED WHEN MORE SITES ARE ADDED
@@ -280,6 +283,9 @@ def totalphase(filelist, logger):
     frange = 15             # constants used for 
     n = frange * 10000      # every file and 
     baudrate = 200          # every frequency
+
+    print("INSIDE THE THREAD")
+    print(filelist)
     
     for thisfile in filelist:
         # The array for the bitclocks of each frequency monitored. 
@@ -313,9 +319,10 @@ def totalphase(filelist, logger):
             alldata = [d19800,d21400,d24000,d24800,d25200,d37500]      # And making them all into one array easing the coding 
                 
             for fileidx in range(0,len(carfarr)):
-                if not os.path.exists('data\\vlf\\phasedata\\'  + year + '\\' + month + '\\' +  day + '\\'):
-                    os.makedirs('data\\vlf\\phasedata\\'   +year + '\\' + month + '\\' +  day+ '\\')   
-                currentf = 'data\\vlf\\phasedata\\'   +year+ '\\' +month+ '\\' +day+ '\\' +header+ '_' +site+ '_' +str(carfarr[fileidx])+ '_phase_power.txt'
+                direc = os.path.join('data','vlf','phasedata',year,month,day) # Folder to write the file to
+                if not os.path.exists(direc):
+                    os.makedirs(direc)   
+                currentf = direc+'/'+header+'_'+site+'_'+str(carfarr[fileidx])+'_phase_power.txt'
                 currentf = os.path.abspath(currentf)   # Making filename os cross compatible    
                 
                 entry = str(alldata[fileidx])  # Editing 

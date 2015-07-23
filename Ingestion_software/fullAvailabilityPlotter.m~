@@ -1,44 +1,35 @@
-%Avaliability Plotter
-%Created: 28 OCT 2014
-%Author: Casey Daniel
-%
-% Version 0.0.1
-%
-% This script is to create the avaliabiltiy charts. This will make the
-% charts bassed upon the current date, and create it for the entire month
-%
-% A quick note, this script does not check to see if one currently exists
-% as it will update the file for the data curently avaliable.
-%
-% Changelog:
-%   -N/A
-%-------------------------------------------------------------------------
-size = 124;
-step = 4;
+size = 124;  % number of elements in the matrix curently 4/day so 124 entries across
+step = 4; % The day is divided into 4 sections
 avaliablityMatrix = zeros(5,size);
-siteIDs = ['atha';'cmrs';'pina';'barr';'fsmi'];
+siteIDs = ['atha';'cmrs';'pina';'barr';'smth'];
 siteIDs = cellstr(siteIDs);
 rootDir = '/data/vlf/summaryPlots';
 %rootDir = '/Users/Casey/Desktop/summaryPlots'; % test directory
 
-
 %matricies index for the days
 index = 1:step:size;
 
-%get the month and year
-Date = clock;
-Year = Date(1);
-Month = Date(2);
+years = [2014];  % Make sure this is correct before proceding
+months = 1:1:12;
 
-%0 pad the month and make the year a string
-Year = num2str(Year);
-Month = ['0' num2str(Month)];
-Month = Month(end-1:end);
+for y=1:length(years)
+    %Convery year to a string
+    Year = num2str(years(y));
+    for m=1:length(months)
+        %Convert the month to a 0 padded string
+        Month = ['0' num2str(months(m))];
+        Month = Month(end-1:end);
+        monthDir = [rootDir '/' Year '/' Month];
+        
+        %check to see if the month directory exists
+        if exist(monthDir, 'dir') == 0
+            continue
+        end
+        
+        %set the file name
+        fileName = [rootDir,'/',Year,'/',Month,'/',Year,'-',Month,'-availability.png'];
 
-
-fileName = [rootDir,'/',Year,'/',Month,'/',Year,'-',Month,'-availability.png'];
-
-for i=1:31 
+        for i=1:31 
     for k = 1:length(siteIDs)
         foundDirs = 0;
         for j = 0:5
@@ -120,8 +111,8 @@ for i=1:31
 end
 
 set(gcf, 'Visible', 'off');
-set(gca, 'FontSize', 15);
-set(findall(gcf,'type','text'),'FontSize',15);
+set(gca, 'FontSize', 10, 'fontWeight', 'bold');
+set(findall(gcf,'type','text'),'FontSize',10, 'fontWeight', 'bold');
 
 imagesc(avaliablityMatrix);
 
@@ -140,18 +131,18 @@ set(gca, 'GridLineStyle', '-', 'LineWidth', 2);
 set(gca, 'xgrid', 'on');
 set(gca, 'ygrid', 'on');
 set(gcf, 'Position', [0 0 600.0 600.0]);
-set(gcf, 'PaperUnits', 'inches', 'PaperSize', [8.0  5.6], 'PaperPosition', [0 0 8.0 5.6]);
-set(gca, 'FontSize', 15);
-set(findall(gcf,'type','text'),'FontSize',15);
-
+set(gcf, 'PaperUnits', 'inches', 'PaperSize', [10.0 7.1], 'PaperPosition', [0 0 10.0 7.1]);
 
 title([Year '-' Month ' Availability Chart']);
 xlabel('Day');
 ylabel('Site');
 
 %Save the plot
-print(gcf, fileName, '-dpng', '-r150'); 
+print(gcf, fileName, '-dpng', '-r250'); 
     
 %Close the plots to prevent memory leaks
 clf;
 close('all');
+            
+    end
+end

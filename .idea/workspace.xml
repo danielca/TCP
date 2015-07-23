@@ -1,0 +1,1234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true">
+    <generated>
+      <config projectName="ABOVE_TCP" targetName="ABOVE_TCP" />
+    </generated>
+  </component>
+  <component name="ChangeListManager">
+    <list id="895b7833-a1d5-4519-8356-bf941a45719f" name="Default" comment="" />
+    <list default="true" id="69002ce0-73a4-4013-807f-32a5f1e02e3a" name="New changelist" comment="sd_reader.cpp:&#10;This is the script to read the sd cards coming back from the intstrtuments.&#10;It should be noted that there is a fix for the incorect information in the headers. Once this problem has been fixed it should be removed&#10;It's not pretty, code clean up and make things general will come next.">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Above Documentation.pdf" afterPath="$PROJECT_DIR$/Above Documentation.pdf" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Above Documentation.tex" afterPath="$PROJECT_DIR$/Above Documentation.tex" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/FFTFilter.m" afterPath="$PROJECT_DIR$/Ingestion_software/FFTFilter.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/File_Manager.py" afterPath="$PROJECT_DIR$/Ingestion_software/File_Manager.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/automatedPhaseServerScriptFinal.py" afterPath="$PROJECT_DIR$/Ingestion_software/automatedPhaseServerScriptFinal.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/availabilityPlotter.m" afterPath="$PROJECT_DIR$/Ingestion_software/availabilityPlotter.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/fullAvailabilityPlotter.m" afterPath="$PROJECT_DIR$/Ingestion_software/fullAvailabilityPlotter.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/full_plot_maker.m" afterPath="$PROJECT_DIR$/Ingestion_software/full_plot_maker.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/shellScripts/matlabAvailabilityPlotter.sh" afterPath="$PROJECT_DIR$/shellScripts/matlabAvailabilityPlotter.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/shellScripts/matlabSummaryPlot.sh" afterPath="$PROJECT_DIR$/shellScripts/matlabSummaryPlot.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Ingestion_software/plot_maker.m" afterPath="$PROJECT_DIR$/Ingestion_software/plot_maker.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/shellScripts/regeneration.sh" afterPath="$PROJECT_DIR$/shellScripts/regeneration.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tcp_server/tcp_client.py" afterPath="$PROJECT_DIR$/tcp_server/tcp_client.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tcp_server/tcp_server_26000.py" afterPath="$PROJECT_DIR$/tcp_server/tcp_server_26000.py" />
+    </list>
+    <list id="ad0d8cd3-1f15-4d71-8573-d94a299e4168" name="Failed commit: New changelist" comment="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory" />
+    <list id="7a20adec-24ce-4e66-94ae-498afce8a311" name="Failed commit: New changelist (2)" comment="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory" />
+    <list id="9babb405-6068-4845-add6-f28a1e198eb6" name="Failed commit: New changelist (3)" comment="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory" />
+    <list id="6c766ad3-74a8-4705-b63c-bb4aedb74a29" name="Failed commit: New changelist (4)" comment="File_manger.py&#10;-Updated Calibrations&#10;-Now using a dict to remember site board revisions&#10;New Documentation!" />
+    <ignored path="ABOVE_TCP.iws" />
+    <ignored path=".idea/workspace.xml" />
+    <ignored path=".idea/dataSources.local.xml" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
+  <component name="CoverageDataManager">
+    <SUITE FILE_PATH="coverage/ABOVE_TCP$tcp_client.coverage" NAME="tcp_client Coverage Results" MODIFIED="1414423175521" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ABOVE_TCP$test.coverage" NAME="test Coverage Results" MODIFIED="1419134208481" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Ingestion_software" />
+    <SUITE FILE_PATH="coverage/ABOVE_TCP$dumb_client.coverage" NAME="dumb_client Coverage Results" MODIFIED="1412349040420" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tcp_server" />
+  </component>
+  <component name="CreatePatchCommitExecutor">
+    <option name="PATCH_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="DaemonCodeAnalyzer">
+    <disable_hints />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FavoritesManager">
+    <favorites_list name="ABOVE_TCP" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file leaf-file-name="Header.txt" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Header.txt">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="165" max-vertical-offset="855">
+              <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
+              <folding />
+            </state>
+          </provider>
+          <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+            <state />
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="File_Manager.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.7927928" vertical-offset="2470" max-vertical-offset="8760">
+              <caret line="490" column="8" selection-start-line="490" selection-start-column="8" selection-end-line="490" selection-end-column="8" />
+              <folding>
+                <element signature="e#23#3590#1" expanded="false" />
+                <element signature="e#3614#3630#0" expanded="true" />
+                <element signature="e#5226#5255#0" expanded="false" />
+                <element signature="e#5291#5650#0" expanded="false" />
+                <element signature="e#5675#6837#0" expanded="false" />
+                <element signature="e#6875#9616#0" expanded="false" />
+                <element signature="e#9684#11642#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindManager">
+    <FindUsagesManager>
+      <setting name="OPEN_NEW_TAB" value="false" />
+    </FindUsagesManager>
+  </component>
+  <component name="Git.Push.Settings">
+    <option name="myUpdateMethod" value="REBASE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/tcp_server/tcp_server_26000.py" />
+        <option value="$PROJECT_DIR$/Ingestion_software/automatedPhaseServerScriptFinal.py" />
+        <option value="$PROJECT_DIR$/Ingestion_software/File_Manager.py" />
+      </list>
+    </option>
+  </component>
+  <component name="InvalidFacetManager">
+    <ignored-facets>
+      <facet id="ABOVE_TCP/invalid/Python" />
+    </ignored-facets>
+  </component>
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-4" />
+    <option name="y" value="186" />
+    <option name="width" value="1213" />
+    <option name="height" value="679" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>Python</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>PySimplifyBooleanCheckInspection</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <OptionsSetting value="true" id="Add" />
+    <OptionsSetting value="true" id="Remove" />
+    <OptionsSetting value="true" id="Checkout" />
+    <OptionsSetting value="true" id="Update" />
+    <OptionsSetting value="true" id="Status" />
+    <OptionsSetting value="true" id="Edit" />
+    <OptionsSetting value="true" id="Undo Check Out" />
+    <OptionsSetting value="true" id="Get Latest Version" />
+    <ConfirmationsSetting value="0" id="Add" />
+    <ConfirmationsSetting value="0" id="Remove" />
+  </component>
+  <component name="ProjectReloadState">
+    <option name="STATE" value="0" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="Scope" currentSubView="Project Files" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ABOVE_TCP" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope">
+        <subPane subId="Project Files" />
+      </pane>
+      <pane id="PackagesPane">
+        <subPane />
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="GoToClass.includeLibraries" value="false" />
+    <property name="GoToClass.toSaveIncludeLibraries" value="false" />
+    <property name="GoToFile.includeJavaFiles" value="false" />
+    <property name="MemberChooser.sorted" value="false" />
+    <property name="MemberChooser.showClasses" value="true" />
+    <property name="MemberChooser.copyJavadoc" value="false" />
+    <property name="recentsLimit" value="5" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="FullScreen" value="false" />
+    <property name="options.lastSelected" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
+    <property name="GenerateAntBuildDialog.generateSingleFile" value="false" />
+    <property name="GenerateAntBuildDialog.enableUiFormCompile" value="true" />
+    <property name="GenerateAntBuildDialog.forceTargetJdk" value="true" />
+    <property name="GenerateAntBuildDialog.backupFiles" value="true" />
+    <property name="GenerateAntBuildDialog.inclineRuntiemClasspath" value="false" />
+    <property name="GenerateAntBuildDialog.generateIdeaHomeProperty" value="false" />
+    <property name="GenerateAntBuildDialog.outputFileNameProperty" value="above_tcp" />
+    <property name="dynamic.classpath" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="CMAKE.AUTO_RELOAD_ENABLED" value="true" />
+  </component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings module-name="ABOVE_TCP" is-module-sdk="true">
+        <option name="myUseModuleSdk" value="true" />
+        <option name="myModuleName" value="ABOVE_TCP" />
+      </console-settings>
+    </option>
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/tcp_server" />
+      <recent name="$PROJECT_DIR$/Ingestion_software" />
+      <recent name="$PROJECT_DIR$/../598Code" />
+      <recent name="$PROJECT_DIR$/test" />
+      <recent name="$PROJECT_DIR$/Ingestion_software/daemon/version" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/sdCard" />
+      <recent name="$PROJECT_DIR$/SummaryPlotViews" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/Ingestion_software" />
+      <recent name="$PROJECT_DIR$/ShellScripts" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.test">
+    <configuration default="false" name="test" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Ingestion_software" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Ingestion_software/test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="TARGET" value="" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="py.test">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="testToRun" value="" />
+      <option name="keywords" value="" />
+      <option name="params" value="" />
+      <option name="USE_PARAM" value="false" />
+      <option name="USE_KEYWORD" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Nosetests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="PARAMS" value="" />
+      <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Unittests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="PUREUNITTEST" value="true" />
+      <option name="PARAMS" value="" />
+      <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Attests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ABOVE_TCP" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <list size="1">
+      <item index="0" class="java.lang.String" itemvalue="Python.test" />
+    </list>
+    <recent_temporary>
+      <list size="1">
+        <item index="0" class="java.lang.String" itemvalue="Python.test" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="SvnConfiguration" myUseAcceleration="nothing" cleanupOnStartRun="true">
+    <configuration useDefault="false">http://casey@svn.phys.ucalgary.ca/svn/above/server_software</configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="895b7833-a1d5-4519-8356-bf941a45719f" name="Default" comment="" />
+      <changelist id="69002ce0-73a4-4013-807f-32a5f1e02e3a" name="New changelist" comment="" />
+      <created>1400012738685</created>
+      <option name="number" value="Default" />
+      <updated>1400012738685</updated>
+      <workItem from="1412009078265" duration="924000" />
+      <workItem from="1412014643386" duration="2995000" />
+    </task>
+    <task id="LOCAL-00002" summary="Added new File_Manager.py script to clean up the files, runs seperatly of the tcp_server&#10;Fixed bug in the tcp_server, now will create directories if needed.&#10;&#10;">
+      <created>1400177294917</created>
+      <option name="number" value="00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1400177294917</updated>
+    </task>
+    <task id="LOCAL-00003" summary="tcp_server.py:&#10;-tested the tcp server, as well as bug fixes&#10;tcp_client.py:&#10;updated the client to the one developed by Candice">
+      <created>1400262629152</created>
+      <option name="number" value="00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1400262629152</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Working routine to move chunk files to seperate directory">
+      <created>1400264919090</created>
+      <option name="number" value="00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1400264919090</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Files are now combined, version 1.0.0, tested and will be pushed to the server&#10;">
+      <created>1400609773512</created>
+      <option name="number" value="00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1400609773512</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Removed uneeded print statements">
+      <created>1400611434894</created>
+      <option name="number" value="00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1400611434894</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Updated README.md">
+      <created>1400611774129</created>
+      <option name="number" value="00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1400611774129</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Updated File handling, see changelog for more details">
+      <created>1400703127629</created>
+      <option name="number" value="00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1400703127629</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Packets are now buffered as controll strings may be broken across several packets, structure updataed acordignly&#10;Updated logging formating for multpile running threads.">
+      <created>1401129802226</created>
+      <option name="number" value="00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1401129802226</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Added Deaemon process. Scrip can now be started with ./tcp_server.py start and stopped with ./tcp_server stop">
+      <created>1401214607186</created>
+      <option name="number" value="00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1401214607186</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Removed Deaemon, instead the command nohup ./tcp_server.py can be used">
+      <created>1401216331953</created>
+      <option name="number" value="00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1401216331953</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Bug fixes,&#10;Removed commented code&#10;Data is now saved in the rawData directory">
+      <created>1401295851945</created>
+      <option name="number" value="00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1401295851945</updated>
+    </task>
+    <task id="LOCAL-00013" summary="File manager now sends data to RTEMP&#10;Better comments about functions&#10;Should now be compatible with previous versions&#10;Better directory handleing">
+      <created>1401996685634</created>
+      <option name="number" value="00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1401996685634</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Added in IP addres and resend requests forwarding to RTEMP">
+      <created>1402005240721</created>
+      <option name="number" value="00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1402005240721</updated>
+    </task>
+    <task id="LOCAL-00015" summary="File Manager:&#10; - Added an additional RTEMP entry&#10; TCP Client:&#10; -New structrue to follow server version 2.1&#10; TCP Server:&#10; -various bug fixes, see changelog">
+      <created>1402520630955</created>
+      <option name="number" value="00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1402520630955</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Bug fixes all around">
+      <created>1402948480827</created>
+      <option name="number" value="00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1402948480827</updated>
+    </task>
+    <task id="LOCAL-00017" summary="File_Manager no longer reads binary into integers, but leaves them as binary&#10;&#10;Print_IP is a simple script to translate the IP dictionary file and print the list of IP's to screen. NEEDS TO BE IN THE SAME LOCATION AS THE .pkl FILE">
+      <created>1403026142583</created>
+      <option name="number" value="00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1403026142583</updated>
+    </task>
+    <task id="LOCAL-00018" summary="New File Structure">
+      <created>1403028080085</created>
+      <option name="number" value="00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1403028080085</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Added daemon to tcp_server and File_Manger&#10;&#10;To start these scripts call ./file_name.py start and to stop ./file_name.py stop">
+      <created>1403036339601</created>
+      <option name="number" value="00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1403036339601</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Added daemon files">
+      <created>1403038705898</created>
+      <option name="number" value="00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1403038705898</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Daemon Now working!!!!!!!!!!!!">
+      <created>1403554746936</created>
+      <option name="number" value="00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1403554746936</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Several bug fixes&#10;Moved tcp director">
+      <created>1404397362991</created>
+      <option name="number" value="00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1404397362991</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Several bug fixes&#10;Moved tcp director">
+      <created>1404397378482</created>
+      <option name="number" value="00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1404397378482</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Changed some directory paths to final ones&#10;Fixed a bug with the file manager so that files are now read in order&#10;">
+      <created>1404839599608</created>
+      <option name="number" value="00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1404839599608</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Standard in and out are now re-directed to the logging files.">
+      <created>1404859194742</created>
+      <option name="number" value="00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1404859194742</updated>
+    </task>
+    <task id="LOCAL-00026" summary="TCP_Server.py &amp; File_Manager.py:&#10;-Small changes, see changelog for details&#10;&#10;rdir.m &amp; enhanced_rdr.m &amp; plot_maker.m:&#10;-New matlab files for the summary plots&#10;-Initial commit of these files&#10;&#10;Summary_Plot.py:&#10;-deleted as summary plot generation will now completly be done by the matlab files">
+      <created>1406841154600</created>
+      <option name="number" value="00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1406841154600</updated>
+    </task>
+    <task id="LOCAL-00027" summary="File_Manager.py:&#10;-Corrected RTEMP Strings&#10;FFTFilter.m:&#10;-New matlab function for filtering the data&#10;-initial commit&#10;malabRunnder.sh:&#10;-New file to set up cron job to run the matlab file&#10;-initial commit">
+      <created>1406923644815</created>
+      <option name="number" value="00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1406923644816</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Matlab:&#10;-Fixed filter, is now working&#10;File_Manager.py:&#10;-Removed batt_temp from packets&#10;-Adjusted temp and voltages to real units">
+      <created>1407274603918</created>
+      <option name="number" value="00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1407274603918</updated>
+    </task>
+    <task id="LOCAL-00029" summary="README.md:&#10;-Updated for matlab files&#10;File_Manager:&#10;-Added in a fix for files being left behind in the raw directory.">
+      <created>1407354642248</created>
+      <option name="number" value="00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1407354642248</updated>
+    </task>
+    <task id="LOCAL-00030" summary="README.md:&#10;-Updated for matlab files&#10;File_Manager:&#10;-Added in a fix for files being left behind in the raw directory.">
+      <created>1407356811156</created>
+      <option name="number" value="00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1407356811156</updated>
+    </task>
+    <task id="LOCAL-00031" summary="File_Manager:&#10;-Added in a fix for files being left behind in the raw directory.">
+      <created>1407356970739</created>
+      <option name="number" value="00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1407356970739</updated>
+    </task>
+    <task id="LOCAL-00032" summary="plot_maker.m:&#10;-Figures are now scaled and presetned properly now&#10;-Script is ready to go">
+      <created>1407525690102</created>
+      <option name="number" value="00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1407525690102</updated>
+    </task>
+    <task id="LOCAL-00033" summary="File_Manager.py:&#10;-Updated RTEMP Packets&#10;plot_maker.m:&#10;-Figures are now saved at a reasonable size&#10;-Other small fixes&#10;">
+      <created>1407873127842</created>
+      <option name="number" value="00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1407873127842</updated>
+    </task>
+    <task id="LOCAL-00034" summary="plot_maker.m:&#10;-Now only searches through yeserday's and today's file rather than the entire tree&#10;full_plot_maker.m:&#10;-New file that will plot every missing plot.&#10;-This file will be run on an as needed basis">
+      <created>1407880437255</created>
+      <option name="number" value="00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1407880437256</updated>
+    </task>
+    <task id="LOCAL-00035" summary="file_manager.py:&#10;-Fixed an issuie with the timestamp bug, now works with multiple sites&#10;tcp_server:&#10;-Undid test configuration">
+      <created>1407959035022</created>
+      <option name="number" value="00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1407959035022</updated>
+    </task>
+    <task id="LOCAL-00036" summary="File_manager.py:&#10;-Another attempt at a fix for the files being left in the raw data directory.&#10;matlabRunner.sh:&#10;-Working cronjob for matlab">
+      <created>1408125791057</created>
+      <option name="number" value="00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1408125791057</updated>
+    </task>
+    <task id="LOCAL-00037" summary="File_manager.py:&#10;-More updates to the RTEMP packets, updated the time_date for the packets">
+      <created>1408384658115</created>
+      <option name="number" value="00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1408384658115</updated>
+    </task>
+    <task id="LOCAL-00038" summary="File_manager.py:&#10;-Fixed bug where time since epoch was cut a digit short">
+      <created>1409104679913</created>
+      <option name="number" value="00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1409104679913</updated>
+    </task>
+    <task id="LOCAL-00039" summary="File_manager.py:&#10;-Updated RTEMP Strings&#10;-Changed RTEMP timestamp to that of the packet">
+      <created>1410559704982</created>
+      <option name="number" value="00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1410559704982</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Fixed UNIX timestampt">
+      <created>1410794752095</created>
+      <option name="number" value="00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1410794752095</updated>
+    </task>
+    <task id="LOCAL-00041" summary="File_Manager.py:&#10;-Another new time stamp to RTEMP&#10;SummaryPlotviwer:&#10;-This directory will contain files for the web applet to show summary plots on the project website. &#10;-New, early stages of development">
+      <created>1412019640206</created>
+      <option name="number" value="00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1412019640206</updated>
+    </task>
+    <task id="LOCAL-00042" summary="Matlab Files:&#10;-New file name format, seconds no longer in the file names&#10;SummaryPlotViewer:&#10;-Now just a simple HTML page with embeded javascript&#10;-Removed the java applet.&#10;tcp_server:&#10;-Have given up on the thread bug, to deep in the socket library to find.">
+      <created>1413567980661</created>
+      <option name="number" value="00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1413567980661</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Turns out the new html page wasn't added in the last commit">
+      <created>1413568351406</created>
+      <option name="number" value="00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1413568351406</updated>
+    </task>
+    <task id="LOCAL-00044" summary="Summary Plot Viewer:&#10;-Added in an onError method, if A picture can't be found, the rest of the day will be searched.&#10;-Made the FTP IP address a variable for easy changing later on.">
+      <created>1414109629150</created>
+      <option name="number" value="00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1414109629150</updated>
+    </task>
+    <task id="LOCAL-00045" summary="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory">
+      <created>1414774922676</created>
+      <option name="number" value="00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1414774922676</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory">
+      <created>1414775157673</created>
+      <option name="number" value="00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1414775157673</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory">
+      <created>1414775190736</created>
+      <option name="number" value="00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1414775190736</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory">
+      <created>1414775223073</created>
+      <option name="number" value="00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1414775223073</updated>
+    </task>
+    <task id="LOCAL-00049" summary="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory">
+      <created>1414775242809</created>
+      <option name="number" value="00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1414775242809</updated>
+    </task>
+    <task id="LOCAL-00050" summary="sd_reader.cpp:&#10;This is the script to read the sd cards coming back from the intstrtuments.&#10;It should be noted that there is a fix for the incorect information in the headers. Once this problem has been fixed it should be removed&#10;It's not pretty, code clean up and make things general will come next.">
+      <created>1421690177757</created>
+      <option name="number" value="00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1421690177757</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="3919000" />
+  </component>
+  <component name="TodoView" selected-index="3">
+    <todo-panel id="selected-file">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="false" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="false" />
+    </todo-panel>
+    <todo-panel id="default-changelist">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="false" />
+    </todo-panel>
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-4" y="186" width="1213" height="679" extended-state="0" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32903227" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32956383" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24959612" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21681781" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24959612" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3270869" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32903227" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32961783" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="IDEtalk Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="IDEtalk" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33901194" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32685512" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39929327" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32879046" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.md" />
+    <option featureType="com.intellij.configurationType" implementationName="PythonConfigurationType" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.sh" />
+  </component>
+  <component name="Vcs.Log.UiProperties">
+    <option name="RECENTLY_FILTERED_USER_GROUPS">
+      <collection />
+    </option>
+    <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
+      <collection />
+    </option>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="myTodoPanelSettings">
+      <TodoPanelSettings />
+    </option>
+    <MESSAGE value="Daemon Now working!!!!!!!!!!!!" />
+    <MESSAGE value="Several bug fixes&#10;Moved tcp director" />
+    <MESSAGE value="Changed some directory paths to final ones&#10;Fixed a bug with the file manager so that files are now read in order&#10;" />
+    <MESSAGE value="Standard in and out are now re-directed to the logging files." />
+    <MESSAGE value="TCP_Server.py &amp; File_Manager.py:&#10;-Small changes, see changelog for details&#10;&#10;rdir.m &amp; enhanced_rdr.m &amp; plot_maker.m:&#10;-New matlab files for the summary plots&#10;-Initial commit of these files&#10;&#10;Summary_Plot.py:&#10;-deleted as summary plot generation will now completly be done by the matlab files" />
+    <MESSAGE value="File_Manager.py:&#10;-Corrected RTEMP Strings&#10;FFTFilter.m:&#10;-New matlab function for filtering the data&#10;-initial commit&#10;malabRunnder.sh:&#10;-New file to set up cron job to run the matlab file&#10;-initial commit" />
+    <MESSAGE value="Matlab:&#10;-Fixed filter, is now working&#10;File_Manager.py:&#10;-Removed batt_temp from packets&#10;-Adjusted temp and voltages to real units" />
+    <MESSAGE value="README.md:&#10;-Updated for matlab files&#10;File_Manager:&#10;-Added in a fix for files being left behind in the raw directory." />
+    <MESSAGE value="File_Manager:&#10;-Added in a fix for files being left behind in the raw directory." />
+    <MESSAGE value="plot_maker.m:&#10;-Figures are now scaled and presetned properly now&#10;-Script is ready to go" />
+    <MESSAGE value="File_Manager.py:&#10;-Updated RTEMP Packets&#10;plot_maker.m:&#10;-Figures are now saved at a reasonable size&#10;-Other small fixes&#10;" />
+    <MESSAGE value="plot_maker.m:&#10;-Now only searches through yeserday's and today's file rather than the entire tree&#10;full_plot_maker.m:&#10;-New file that will plot every missing plot.&#10;-This file will be run on an as needed basis" />
+    <MESSAGE value="file_manager.py:&#10;-Fixed an issuie with the timestamp bug, now works with multiple sites&#10;tcp_server:&#10;-Undid test configuration" />
+    <MESSAGE value="File_manager.py:&#10;-Another attempt at a fix for the files being left in the raw data directory.&#10;matlabRunner.sh:&#10;-Working cronjob for matlab" />
+    <MESSAGE value="File_manager.py:&#10;-More updates to the RTEMP packets, updated the time_date for the packets" />
+    <MESSAGE value="File_manager.py:&#10;-Fixed bug where time since epoch was cut a digit short" />
+    <MESSAGE value="File_manager.py:&#10;-Updated RTEMP Strings&#10;-Changed RTEMP timestamp to that of the packet" />
+    <MESSAGE value="Fixed UNIX timestampt" />
+    <MESSAGE value="File_Manager.py:&#10;-Another new time stamp to RTEMP&#10;SummaryPlotviwer:&#10;-This directory will contain files for the web applet to show summary plots on the project website. &#10;-New, early stages of development" />
+    <MESSAGE value="Matlab Files:&#10;-New file name format, seconds no longer in the file names&#10;SummaryPlotViewer:&#10;-Now just a simple HTML page with embeded javascript&#10;-Removed the java applet.&#10;tcp_server:&#10;-Have given up on the thread bug, to deep in the socket library to find." />
+    <MESSAGE value="Turns out the new html page wasn't added in the last commit" />
+    <MESSAGE value="Summary Plot Viewer:&#10;-Added in an onError method, if A picture can't be found, the rest of the day will be searched.&#10;-Made the FTP IP address a variable for easy changing later on." />
+    <MESSAGE value="Summary Plot Viewer:&#10;-Scroll through avaliability plots&#10;-Now searches for an hour instead of the day roll over&#10;-Go button now works&#10;Availability plot scripts:&#10;-New size of plots&#10;Plot maker scripts:&#10;-New Size of plots&#10;-Fixed naming problem with the filename time stamp&#10;/ShellScripts:&#10;-Various scripts for different ocasions&#10;tcp_server:&#10;-New PID directory" />
+    <MESSAGE value="File_manger.py&#10;-Updated Calibrations&#10;-Now using a dict to remember site board revisions&#10;New Documentation!" />
+    <MESSAGE value="sd_reader.cpp:&#10;This is the script to read the sd cards coming back from the intstrtuments.&#10;It should be noted that there is a fix for the incorect information in the headers. Once this problem has been fixed it should be removed&#10;It's not pretty, code clean up and make things general will come next." />
+    <option name="LAST_COMMIT_MESSAGE" value="sd_reader.cpp:&#10;This is the script to read the sd cards coming back from the intstrtuments.&#10;It should be noted that there is a fix for the incorect information in the headers. Once this problem has been fixed it should be removed&#10;It's not pretty, code clean up and make things general will come next." />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <option name="time" value="14" />
+    </breakpoint-manager>
+    <watches-manager />
+  </component>
+  <component name="antWorkspaceConfiguration">
+    <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
+    <option name="FILTER_TARGETS" value="false" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/Header.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="165" max-vertical-offset="855">
+          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="5010">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#23#3590#1" expanded="false" />
+            <element signature="e#3614#3630#0" expanded="true" />
+            <element signature="e#5226#5255#0" expanded="false" />
+            <element signature="e#5291#5650#0" expanded="false" />
+            <element signature="e#5675#6837#0" expanded="false" />
+            <element signature="e#6875#9616#0" expanded="false" />
+            <element signature="e#9684#11642#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Header.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="100">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Header.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="165" max-vertical-offset="855">
+          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4860">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#23#3590#1" expanded="false" />
+            <element signature="e#3614#3630#0" expanded="true" />
+            <element signature="e#5226#5255#0" expanded="false" />
+            <element signature="e#5291#5650#0" expanded="false" />
+            <element signature="e#5675#6837#0" expanded="false" />
+            <element signature="e#6875#9616#0" expanded="false" />
+            <element signature="e#9684#11642#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1302" max-vertical-offset="4575">
+          <caret line="738" column="94" selection-start-line="738" selection-start-column="24" selection-end-line="738" selection-end-column="94" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/automatedPhaseServerScriptFinal.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="658" max-vertical-offset="2415">
+          <caret line="41" column="9" selection-start-line="41" selection-start-column="9" selection-end-line="41" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Header.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="165" max-vertical-offset="855">
+          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="12930">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#23#3590#1" expanded="false" />
+            <element signature="e#3614#3630#0" expanded="true" />
+            <element signature="e#5226#5255#0" expanded="false" />
+            <element signature="e#5291#5650#0" expanded="false" />
+            <element signature="e#5675#6837#0" expanded="false" />
+            <element signature="e#6875#9616#0" expanded="false" />
+            <element signature="e#9684#11642#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="7770" max-vertical-offset="12030">
+          <caret line="518" column="47" selection-start-line="518" selection-start-column="47" selection-end-line="518" selection-end-column="47" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_client.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1140" max-vertical-offset="2475">
+          <caret line="76" column="54" selection-start-line="76" selection-start-column="54" selection-end-line="76" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="11505">
+          <caret line="90" column="58" selection-start-line="90" selection-start-column="58" selection-end-line="90" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="8880" max-vertical-offset="14070">
+          <caret line="592" column="18" selection-start-line="592" selection-start-column="18" selection-end-line="592" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/Daemon.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2160">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/Print_IP_List.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="210" max-vertical-offset="300">
+          <caret line="18" column="31" selection-start-line="18" selection-start-column="31" selection-end-line="18" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_client.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1140" max-vertical-offset="2475">
+          <caret line="76" column="54" selection-start-line="76" selection-start-column="54" selection-end-line="76" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1290" max-vertical-offset="11100">
+          <caret line="86" column="35" selection-start-line="86" selection-start-column="35" selection-end-line="86" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_client.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="225" max-vertical-offset="2460">
+          <caret line="15" column="0" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1095" max-vertical-offset="13620">
+          <caret line="73" column="13" selection-start-line="73" selection-start-column="13" selection-end-line="73" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="10140" max-vertical-offset="10695">
+          <caret line="676" column="33" selection-start-line="676" selection-start-column="33" selection-end-line="676" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="11955" max-vertical-offset="13065">
+          <caret line="855" column="34" selection-start-line="855" selection-start-column="34" selection-end-line="855" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/Daemon.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="19.26923" vertical-offset="696" max-vertical-offset="2145">
+          <caret line="14" column="57" selection-start-line="14" selection-start-column="51" selection-end-line="14" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/Daemon.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="370">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/Print_IP_List.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="300">
+          <caret line="18" column="31" selection-start-line="18" selection-start-column="31" selection-end-line="18" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/enhanced_rdir.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.76704544" vertical-offset="0" max-vertical-offset="1050">
+          <caret line="18" column="38" selection-start-line="18" selection-start-column="38" selection-end-line="18" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/plot_maker.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-3.6022727" vertical-offset="1268" max-vertical-offset="1620">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.53846157" vertical-offset="245" max-vertical-offset="765">
+          <caret line="35" column="58" selection-start-line="35" selection-start-column="58" selection-end-line="35" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/full_plot_maker.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-2.4590163" vertical-offset="750" max-vertical-offset="3465">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/test_tcp_server.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1888" max-vertical-offset="12915">
+          <caret line="137" column="21" selection-start-line="115" selection-start-column="0" selection-end-line="137" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/shellScripts/matlabAvailabilityPlotter.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="120">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/shellScripts/matlabSummaryPlot.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="120">
+          <caret line="2" column="25" selection-start-line="0" selection-start-column="0" selection-end-line="2" selection-end-column="137" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/shellScripts/reboot.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="150">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/shellScripts/root_reboot.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="150">
+          <caret line="4" column="36" selection-start-line="4" selection-start-column="36" selection-end-line="4" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_client.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3900185" vertical-offset="1829" max-vertical-offset="2385">
+          <caret line="142" column="0" selection-start-line="142" selection-start-column="0" selection-end-line="142" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.43650794" vertical-offset="0" max-vertical-offset="378">
+          <caret line="11" column="6" selection-start-line="11" selection-start-column="6" selection-end-line="11" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/rdir.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-4.457143" vertical-offset="2520" max-vertical-offset="6660">
+          <caret line="12" column="10" selection-start-line="12" selection-start-column="10" selection-end-line="12" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.1559792" vertical-offset="0" max-vertical-offset="577">
+          <caret line="6" column="11" selection-start-line="6" selection-start-column="11" selection-end-line="6" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sdCard/sd_reader.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.32490975" vertical-offset="0" max-vertical-offset="554">
+          <caret line="12" column="1" selection-start-line="12" selection-start-column="1" selection-end-line="12" selection-end-column="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/test_file_manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="345" max-vertical-offset="8850">
+          <caret line="145" column="24" selection-start-line="145" selection-start-column="24" selection-end-line="145" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/fullAvailabilityPlotter.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.08152174" vertical-offset="0" max-vertical-offset="2310">
+          <caret line="3" column="45" selection-start-line="3" selection-start-column="45" selection-end-line="3" selection-end-column="45" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SummaryPlotViews/SummaryPlotPage.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.5027933" vertical-offset="0" max-vertical-offset="537">
+          <caret line="539" column="4" selection-start-line="539" selection-start-column="4" selection-end-line="539" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tcp_server/tcp_server_26000.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="3124" max-vertical-offset="4380">
+          <caret line="738" column="94" selection-start-line="738" selection-start-column="24" selection-end-line="738" selection-end-column="94" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/automatedPhaseServerScriptFinal.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="3.5515463" vertical-offset="2268" max-vertical-offset="5730">
+          <caret line="289" column="18" selection-start-line="289" selection-start-column="18" selection-end-line="289" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Header.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-0.0" vertical-offset="165" max-vertical-offset="855">
+          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="com.intellij.database.editor.CsvTableFileEditorProvider">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ingestion_software/File_Manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.7927928" vertical-offset="2470" max-vertical-offset="8760">
+          <caret line="490" column="8" selection-start-line="490" selection-start-column="8" selection-end-line="490" selection-end-column="8" />
+          <folding>
+            <element signature="e#23#3590#1" expanded="false" />
+            <element signature="e#3614#3630#0" expanded="true" />
+            <element signature="e#5226#5255#0" expanded="false" />
+            <element signature="e#5291#5650#0" expanded="false" />
+            <element signature="e#5675#6837#0" expanded="false" />
+            <element signature="e#6875#9616#0" expanded="false" />
+            <element signature="e#9684#11642#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ProjectJDKs.UI">
+        <settings>
+          <last-edited>1.7</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+    </states>
+  </component>
+</project>

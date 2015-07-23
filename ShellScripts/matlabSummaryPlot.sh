@@ -1,3 +1,3 @@
 #!/bin/bash
 
-/usr/local/MATLAB/R2014a/bin/matlab -nodisplay -nodesktop -nojvm -singleCompThread -r "run /data/vlf/src/Ingestion_software/plot_maker.m"
+/data/vlf/MATLAB/R2014b/bin/matlab -nodisplay -nodesktop  -r "run /home/cdaniel/src/Ingestion_software/Ingestion_software/plot_maker.m"

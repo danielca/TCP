@@ -117,8 +117,8 @@ import select
 
 # globals
 ROOT_FILE_PATH = '/data/vlf'
-TCP_IP = ""136.159.190.48""  # Sever IP
-TCP_PORT = 26000
+TCP_IP = "136.159.190.48"  # Sever IP
+TCP_PORT = 26015
 BUFFER_SIZE = 1024
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
@@ -485,7 +485,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 data += char
 
                 #Check for control close
-                if CONTROL_CLOSE in data:
+                if CONTROL_CLOSE in header:
                     logger.info("THREAD-%s: Received close control message, now closing the connection" %
                                 str(threadNum))
                     writeDataToFile(data, header, threadNum)
@@ -618,7 +618,7 @@ def processConnection(threadNum, conn, addr, socket):
 
             if time.time() > timeout:
                 logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
-                               (str(threadNum), str(CONNECTION_TIMEOUT) ))
+                               str(threadNum), str(CONNECTION_TIMEOUT))
                 break
 
             if CONTROL_CLOSE in packet:

@@ -38,10 +38,10 @@ import struct
 ##############
 
 #Ip Inofrmation
-TCP_ADDR = "136.159.51.230"
-TCP_PORT = 25000
+TCP_ADDR = "136.159.190.48"
+TCP_PORT = 26020
 BUFFER_SIZE = 1024
-
+NUMBER_PACKETS = 15
 #Control Strings
 CONTROL_CLOSE = "[CTRL:close]\0"
 CONTROL_HSK_REQUEST = "[CTRL:reqhsk]\0"
@@ -55,13 +55,13 @@ CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]\0"
 
 #misc
-TIME_DELAY = 3*60  # run every 3 min
+TIME_DELAY = 5*60  # run every 3 min
 
 
 
 
 #makes the header and data list
-def makePacket(date, time, packetNo, maxPackets):
+def makePacket(date, time, packetNo, maxPackets, site):
     binary_data = struct.pack(">h", 10)
     #make 100 random integers from -100 to 100
     for i in range(1, 20000):
@@ -74,19 +74,20 @@ def makePacket(date, time, packetNo, maxPackets):
 
     #Assemble the header for version 2.1
     #{120514,233025.004,1,G3,2.1,20140509a,test,20140509,above,151,145,167,255,0,-47,667,40000,1,1000}
-    header = "{%s,%s,%s,G3,2.1,20140509a,tst2,20140509,above,151,145,167,255,0,-47,667,%s,%s,100}" % \
-             (str(date), str(time), str(packetNo), str(40000), str(maxPackets))
+    header = "{%s,%s,%s,G3,2.1,20140509a,%s,20140509c,vlf-00,151,145,167,255,0,-47,667,%s,%s,100}" % \
+             (str(date), str(time), str(packetNo), str(site), str(40000), str(maxPackets))
     return binary_data, header
 
 #function to actually send the packets to the server
-def dataSending(socket):
+def dataSending(socket,k ):
     #loop over 45 files, just like the instrument
     date = datetime.datetime.utcnow().strftime("%d%m%y")
     time = datetime.datetime.utcnow().strftime("%H%M%S.%f")
     time = time[:10]
-    for i in range(0, 45):
+    for i in range(0, NUMBER_PACKETS):
         missedPackets = 0
-        binary_data, header = makePacket(date, time, i, 45)
+        site_name = "tst" + str(k)
+        binary_data, header = makePacket(date, time, i, NUMBER_PACKETS, site_name)
         #send the header controll string
         socket.send(CONTROL_HSK_RECEIVE)
         #get the response
@@ -98,7 +99,7 @@ def dataSending(socket):
         if response.startswith("[CTRL:dr-00:00]"):
             #data request received, send the data
             socket.send(binary_data)
-            socket.send("Data_Stop\0")
+            socket.send("Data_Stop")
 
             response2 = socket.recv(BUFFER_SIZE)
 
@@ -125,33 +126,34 @@ def dataSending(socket):
 
 #main function
 def main():
-    #initialize the socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_ADDR, TCP_PORT))
-    s.settimeout(15)
+    for k in range (0,5):
+        #initialize the socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((TCP_ADDR, TCP_PORT))
+        s.settimeout(15)
 
-    #send the wake up controll string
-    s.send(CONTROL_WAKEUP_CALL_RECEIVE)
-    counter = 0
-    #get and check the response
-    while 1:
-        counter += 1
-        recv = s.recv(BUFFER_SIZE)
-        print recv
+        #send the wake up controll string
+        s.send(CONTROL_WAKEUP_CALL_RECEIVE)
+        counter = 0
+        #get and check the response
+        while 1:
+            counter += 1
+            recv = s.recv(BUFFER_SIZE)
+            print recv
 
-        if recv.startswith("[CTRL:awake]"):
-            dataSending(s)
-            break
-        if counter > 10:
-            break
-        counter += 1
+            if recv.startswith("[CTRL:awake]"):
+                dataSending(s, k)
+                break
+            if counter > 10:
+                break
+            counter += 1
 
-    #close the connection
-    s.send(CONTROL_CLOSE)
-    s.close()
+        #close the connection
+        s.send(CONTROL_CLOSE)
+        s.close()
 
     #repeat this funcion every TIME_DELAY interval
-    #threading.Timer(TIME_DELAY, main).start()
+    threading.Timer(TIME_DELAY, main).start()
 
 #main entry point
 if __name__ == "__main__":

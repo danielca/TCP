@@ -116,9 +116,9 @@ import select
 ################
 
 # globals
-ROOT_FILE_PATH = '/data/vlf'
-TCP_IP = ""136.159.190.48""  # Sever IP
-TCP_PORT = 26000
+ROOT_FILE_PATH = '/data/vlf/testServer'
+TCP_IP = "136.159.190.48"  # Sever IP
+TCP_PORT = 26020
 BUFFER_SIZE = 1024
 YEAR_PREFIX = "20"
 CONNECTION_BACKLOG = 5
@@ -133,7 +133,7 @@ SOCKET_TIMEOUT_ON_CONNECTION = None
 SOCKET_TIMEOUT_NORMAL = None
 
 # logging strings
-LOG_FILENAME = "above_vlf_tcp_server_%s.log" % str(TCP_PORT)
+LOG_FILENAME = "above_vlf_test_tcp_server_%s.log" % str(TCP_PORT)
 LOGFILE_MAX_BYTES = 1024000 * 100   # 100MB
 LOGFILE_BACKUP_COUNT = 5
 LOG_PATH = "logs"
@@ -152,7 +152,7 @@ CONTROL_WAKEUP_CALL_RECEIVE = "[CTRL:wakeup]"
 CONTROL_WAKEUP_CALL_SEND = "[CTRL:awake]"
 
 #PID file
-PID_FILE = 'TCP_Server_%s.pid' % str(TCP_PORT)
+PID_FILE = 'test_TCP_Server_%s.pid' % str(TCP_PORT)
 PID_PATH = '/data/vlf/PID'
 
 #miscilanious
@@ -485,7 +485,7 @@ def dataConnection(threadNum, conn, addr, socket, packetNo):
                 data += char
 
                 #Check for control close
-                if CONTROL_CLOSE in data:
+                if CONTROL_CLOSE in header:
                     logger.info("THREAD-%s: Received close control message, now closing the connection" %
                                 str(threadNum))
                     writeDataToFile(data, header, threadNum)
@@ -618,7 +618,7 @@ def processConnection(threadNum, conn, addr, socket):
 
             if time.time() > timeout:
                 logger.warning("THREAD-%s: Thread has been active for longer than %s seconds, closing connection" %
-                               (str(threadNum), str(CONNECTION_TIMEOUT) ))
+                               str(threadNum), str(CONNECTION_TIMEOUT))
                 break
 
             if CONTROL_CLOSE in packet:

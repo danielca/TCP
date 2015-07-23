@@ -1,10 +1,9 @@
 size = 124;  % number of elements in the matrix curently 4/day so 124 entries across
 step = 4; % The day is divided into 4 sections
 avaliablityMatrix = zeros(5,size);
-siteIDs = ['atha';'cmrs';'pina';'barr';'smth'];
+siteIDs = ['atha';'cmrs';'pina';'barr';'fsmi'];
 siteIDs = cellstr(siteIDs);
 rootDir = '/data/vlf/summaryPlots';
-%rootDir = '/Users/Casey/Desktop/summaryPlots'; % test directory
 
 %matricies index for the days
 index = 1:step:size;
@@ -25,7 +24,6 @@ for y=1:length(years)
         if exist(monthDir, 'dir') == 0
             continue
         end
-        
         %set the file name
         fileName = [rootDir,'/',Year,'/',Month,'/',Year,'-',Month,'-availability.png'];
 
@@ -131,14 +129,14 @@ for y=1:length(years)
         set(gca, 'xgrid', 'on');
         set(gca, 'ygrid', 'on');
         set(gcf, 'Position', [0 0 600.0 600.0]);
-        set(gcf, 'PaperUnits', 'inches', 'PaperSize', [8.0 5.6], 'PaperPosition', [0 0 8 5.6]);
+        set(gcf, 'PaperUnits', 'inches', 'PaperSize', [10.0 7.1], 'PaperPosition', [0 0 10.0 7.1]);
 
         title([Year '-' Month ' Availability Chart']);
         xlabel('Day');
         ylabel('Site');
 
         %Save the plot
-        print(gcf, fileName, '-dpng', '-r150'); 
+        print(gcf, fileName, '-dpng', '-r250'); 
 
         %Close the plots to prevent memory leaks
         clf;

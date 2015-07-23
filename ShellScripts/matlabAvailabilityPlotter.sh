@@ -1,3 +1,3 @@
 #!/bin/bash
 
-/usr/local/MATLAB/R2014a/bin/matlab -nodisplay -nodesktop -nojvm -singleCompThread -r "run /data/vlf/src/Ingestion_software/availabilityPlotter.m"
+/data/vlf/MATLAB/R2014b/bin/matlab -nodisplay -nodesktop  -r "run /data/vlf/src/Ingestion_software/availabilityPlotter.m"

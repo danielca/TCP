@@ -12,11 +12,10 @@
 %
 % Changelog:
 %   -N/A
-%-------------------------------------------------------------------------
 size = 124;
 step = 4;
 avaliablityMatrix = zeros(5,size);
-siteIDs = ['atha';'cmrs';'pina';'barr';'fsmi'];
+siteIDs = ['atha';'cmrs';'pina';'barr';'smth'];
 siteIDs = cellstr(siteIDs);
 rootDir = '/data/vlf/summaryPlots';
 %rootDir = '/Users/Casey/Desktop/summaryPlots'; % test directory
@@ -35,6 +34,8 @@ Year = num2str(Year);
 Month = ['0' num2str(Month)];
 Month = Month(end-1:end);
 
+Year = '2014';
+Month = '09';
 
 fileName = [rootDir,'/',Year,'/',Month,'/',Year,'-',Month,'-availability.png'];
 
@@ -120,8 +121,8 @@ for i=1:31
 end
 
 set(gcf, 'Visible', 'off');
-set(gca, 'FontSize', 15);
-set(findall(gcf,'type','text'),'FontSize',15);
+set(gca, 'FontSize', 10, 'fontWeight', 'bold');
+set(findall(gcf,'type','text'),'FontSize',10, 'fontWeight', 'bold');
 
 imagesc(avaliablityMatrix);
 
@@ -140,17 +141,14 @@ set(gca, 'GridLineStyle', '-', 'LineWidth', 2);
 set(gca, 'xgrid', 'on');
 set(gca, 'ygrid', 'on');
 set(gcf, 'Position', [0 0 600.0 600.0]);
-set(gcf, 'PaperUnits', 'inches', 'PaperSize', [8.0  5.6], 'PaperPosition', [0 0 8.0 5.6]);
-set(gca, 'FontSize', 15);
-set(findall(gcf,'type','text'),'FontSize',15);
-
+set(gcf, 'PaperUnits', 'inches', 'PaperSize', [10.0 7.1], 'PaperPosition', [0 0 10.0 7.1]);
 
 title([Year '-' Month ' Availability Chart']);
 xlabel('Day');
 ylabel('Site');
 
 %Save the plot
-print(gcf, fileName, '-dpng', '-r150'); 
+print(gcf, fileName, '-dpng', '-r250'); 
     
 %Close the plots to prevent memory leaks
 clf;

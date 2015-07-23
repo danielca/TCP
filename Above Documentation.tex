@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage{float}
 \usepackage[export]{adjustbox}
+\usepackage{hyperref}
 \title{ABOVE Server Documentation \\ Version 1}
 \date{\today}
 \author{Casey Daniel}
@@ -12,7 +13,18 @@
 \newpage
 \section{Introduction}
 
-This documentation is meant to be a user guide for the ABOVE server files. These files include the TCP server, Initial Ingestion, plot generation, and shell scripts. All source files can be found on the server on /data/vlf/src/, however this may change on the new server once set up. 
+This documentation is meant to be a user guide for the ABOVE server files. These files include the TCP server, Initial Ingestion, plot generation, and shell scripts. All source files can be found on the server on /data/vlf/src/.
+
+\section{Overview and Data Flow}
+For a brief overview of the data flow of the project. There are two primary flows starting at the instrument. Data is collected by the FPGA and all data collected is saved to an unformatted SD card attached to the instrument. Selections of the data are also sent back to the server located at the University of Calgary over WiFi or 3G modems. The amount and intervals that the data is sent over 3G is dependent on the data volume, and is typically selected to be under the 6GB data plan. 
+
+Data sent over 3G is received by the TCP server, written in Python. The instrument divides the data into chunks, and then sent. This server catches the incoming data, and saves the chunk files. These files are then picked up, combined into a larger file containing the entire data set, and sends data to RTEMP where we can monitor the instruments easily. These files are plotted and converted to CDF by MATLAB scripts. These are then hosted on data.phys.ucalgary.ca by Darren Chaddock.
+
+The SD card data is saved, and then sent back to the University. There is a C++ script that will extract the data from the SD card and saved locally. These files can then be copied to the server, where MATLAB scripts can once again plot and convert to CDF, and then hosted. 
+
+
+\section{RTEMP}
+RTEMP is the Real Time Environment Monitoring Platform, currently run by Darren Chaddock. Data is sent from the File Manager script. This data can be seen at \url{http://above.rtemp.ca/} The important bits of data displayed here is the current SD fill, and the packet age. When a site goes down it's best to check on the server to make sure that the server on that port has not crashed, and is running. If so then the most likely cause is either low battery or low cell reception.
 
 
 \section{Directory Tree}
@@ -26,15 +38,17 @@ root & $/data/vlf/$ \\ \hline
 source directory & $/data/vlf/src$ \\ \hline
 raw data & $/data/vlf/RawData$ \\ \hline
 malformed files & $/data/vlf/malformedFiles$ \\ \hline
-data tree & $Year/Month/Day/Site/Hour$ \\ \hline
+data tree & $./dataType/Year/Month/Day/Site/Hour$ \\ \hline
 chunk files & $/data/vlf/chunks/data tree$ \\ \hline
-full data files & $/data/vlf/full\_ files$ \\ \hline
+full data files & $/data/vlf/full\_ files/$ \\ \hline
 logs & $/data/vlf/logs$ \\ \hline
 summary plots & $/data/vlf/summaryPlots/data tree$ \\ \hline
+cdf files & $/data/vlf/cdf/data tree$ \\ \hline
 \end{tabular}
 \label{table:directories}
 \caption{Directory List}
 \end{table}
+
 
 \section{TCP Sever}
 The Python TCP server it's self is written in Python 2.7, and is needed to run. In the source directory the server is managed by the executable of the form source $directory/tcp\_ server/tcp\_ server\_ PORTNO.py$ where PORTNO is the desired port number. This executable looks for one of 3 commands, start, stop, or restart. (i.e. $./tcp\_ server\_ 26000.py$ start)
@@ -44,7 +58,7 @@ If another port is desired a few changes need to be made to the python file. The
 The server flow is described in figure \ref{fig:serverFlow}, once I finish making it. This will detail the communications flow between the client on the FPGA and the server. 
 
 \begin{figure}
-\includegraphics[width=1.5\textwidth,left]{./SeverFlowChart.pdf}
+\hspace*{-3cm}\includegraphics[width=1.5\textwidth]{./ServerDataFlowChart.pdf}
 \caption{Visual of the connection process. Blue represents information sent by the client, and green represents information or decisions made by the server.}
 \label{fig:serverFlow}
 \end{figure}
@@ -55,36 +69,49 @@ The client will send over chunk files over the internet connection, and will dep
 
 The File Manager, as found in ingestion software directory, and is responsible for file management. It runs the same way the tcp server does, and the same commands and format are used. This file looks through the rawData directory and collects the chunk files produced by the server and combines them into a full file, and deposit in the full file tree.
 
-The File Manager is run on a damon script. When the \texttt{clean\_ up()} method is called, a search of the raw data directory is done. A check for a set of data files is done. If a set contains the expected number of files, as set in the header of the files, they are combined and a full file is saved in the full file directory, and the chunks are then moved to the chunks directory. 
+The File Manager is run on a dameon (see appendix) script. When the \texttt{clean\_ up()} method is called, a search of the raw data directory is done. A check for a set of data files is done. If a set contains the expected number of files, as set in the header of the files, they are combined and a full file is saved in the full file directory, and the chunks are then moved to the chunks directory. 
 
 If a full set of files is not found, and the time stamp is over one hour old, then the chunk files that are found are then moved to the malformed files directory. File Manager is also responsible for sending RTEMP Information. These packets are formed and sent from this script, for information on format please contact Darren Chaddock.
 
 After the files are formed, Eric Davis' script for the phase data is then started in a separate thread. Once the clean up is complete, a timer is set for 5 minutes for clean up to be called again.
 
 
-\section{Summary Plot Generation}
+\section{CDF and Summary Plots}
 
-Summary plot generation is handled by Matlab scripts. There are four scripts that handle the summary plots and the availability plots, two for each. One of these is called by a cronjob periodically (see the appendix) and will only search through the previous and current days directories, while the other meant to run on its own and search through the entire directory tree. The summary plot files are \texttt{plot\_ maker.m} to be called by the cronjob and \texttt{full\_ plot\_ maker.m} regenerates all missing summary plots. Similarly availabilityPlotter.m is called by the cronjob and fullAvailabilityPlotter.m is meant to regenerate all of the availability plots.  
+The creation of summary plots and CDF files are handled using Matlab. Going forward there will be one Matlab function for the CDF generation, summary plot. There will be one of each of these for each file type.
 
-The crontab calls a shell script stored in src/shellScripts/. The shell scripts then call the Matlab scripts. 
+These functions get called by other Matlab scripts that search for the relevant file types in the data tree. Once found they will unpack the data, and pass it off to the two functions. Two versions of this script will exist. The first one will be called by a crontab (see appendix) and will only look in the current and previous days directory for any files that have not been processed. The second will look through the full data directory to find 
 
 All of these can be run from the command line using the command 'Matlab -nodesktop -nodsiplay -r run "/path/to/script/scriptname.m"'. It's recommended that when running the regeneration scripts that you move the other Matlab scripts out of the directory to ensure they are not run. Matlab is a resource hog, and leaving these scripts in place can cause a bottle neck on the CPU. There is also a shell script regenerations.sh in src/shellScrips/ directory that will manage these scripts. 
 
+The crontab calls a shell script stored in src/shellScripts/. The shell scripts then call the Matlab scripts.
+
+\subsection{Summary Plots}
+The current plots are two spectrograms, one of each antenna, of the full 0-75kHz range. Below is a spectrogram of 0-10kHz, followed by the plotted time series. 
+
+More types of plots will be added as new types of data are available.
+ 
+
+
+
+\subsection{CDF}
+The CDF files are ISTP compliant, and follow the required attributes and naming conventions. Again only one type of data is currently hosted as only one is available. More details about CDF can be found at \url{http://cdf.gsfc.nasa.gov/} and ISTP compliance at \url{http://spdf.gsfc.nasa.gov/istp_guide/istp_guide.html} 
+
+
 \section{SD reader}
 
-The SD reader application is a c++ script that will read the contents of the SD card, and place them in the directory tree with a given root directory. To run this program in the command line "./sdCard if=/path/to/InputFile.dat od=/root/of/directory/tree". There are also 2 optional commands. -hf will fix the header values. The early versions of the SD card had a few fields with incorrect information. -sd \texttt{SD\_ SIZE} will allow you to change the SD card size. The default is 128GB, however if the card is a different size, then a different one can be use. It's recommended to direct the output to a log file by attaching ">log.txt" to the end of the command. 
+The SD reader application is a c++ script that will read the contents of the SD card, and place them in the directory tree with a given root directory. To run this program in the command line "./sdCard if=/path/to/InputFile.dat od=/root/of/directory/tree". There are also 2 optional commands. -hf will fix the header values. The early versions of the SD card had a few fields with incorrect information. -sd \texttt{SD\_ SIZE} will allow you to change the SD card size. The default is 128GB, however if the card is a different size, then a different one can be use. It's recommended to direct the output to a log file by attaching \texttt{">log.txt"} to the end of the command. 
 
 Before running, the SD card should be copied into a separate file. The mounting point for the SD on a unix system can be found by looking through /dev/ using diskutil. Once the mount point is found, the command dd 1f=/path/ of=out/file.dat can be used to transfer the documents. The /out/file.dat can then be fed into the SD reader. 
 
-\section{FTP Server}
-The FTP server is handled by VSFTPD, and can be started by the su by running the command \texttt{"vsftpd /etc/vsftpd/above\_vsftpd.conf"}. This opens an anonymous FTP server with the the summary plot directory as root. At a later time this will also include CDF files. These allow the summary plot page to view the the plots on the web.
-
+\section{FTP Hosting}
+Files and imagines will be hosted by Darren Cahddock via anonymous FTP.
 
 \section{Shell Scripts}
 
 There are a few shell scripts. These primarily handle the generation of summary plots. There is also a reboot script that is called by the crontab on boot to restart the server and the file manger. There is also a \texttt{root\_reboot} shell script that is called by the root user on boot to start the FTP server. 
 
-Note: on the current server the reboot scripts don't work and need to be run by hand when the server is rebooted, however with the new server hardware it should be functional.
+
 
 \section{HTML Page}
 In the summary plots page directory sit a simple HTML page to be able to view the summary plots from the browser. It consists of a simple form with the year, month, day, year, hour, site, and a few buttons to be able to flip through both the availability charts and the summary plots.
@@ -106,6 +133,17 @@ Cronjob's calling the shell scripts should be set up. It's recommended that the 
 
 The HTML page also needs to be updated with the new IP address. It's listed as a constant in the java script. The site is currently hosted by Darren Chaddock, and the new HTML page should be sent to him to be updated. 
 
+
+\section{Appendix}
+
+\subsection{Dameon}
+
+When a program is run normally from the command line, the process is attached to the terminal, meaning that when you close the terminal the process is also stopped. This obviously causes a problem when trying to run programs indefinitely. To take the process away from the terminal and pass it into the background is called dameon. 
+
+In the python scrips I have found a class that through a simple import and modification of a few components will handle this task easily. More on how this is done can be found from the source.
+
+
+
 \subsection{Crontab}
 Here is the current crontab setup to be used as an example. For more options on crontab, please consult their documentation.
 
@@ -117,11 +155,11 @@ Main User Crontab
 
 \texttt{15,45 * * * * /data/vlf/src/shellScripts/matlabAvailabilityPlotter.sh \&> /data/vlf/logs/avail\_log.log}
 
-Root Crontab
-
-\texttt{reboot /data/vlf/src/shellScripts/root\_reboot.sh \&> /dev/null}
 
 If you wish to see the output of these scripts, the file can be adjusted.
+
+
+
 
 
 

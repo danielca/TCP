@@ -125,7 +125,7 @@ import logging
 import logging.handlers
 import os
 import glob
-import automatedPhaseServerScriptFinal as phase
+#import automatedPhaseServerScriptFinal as phase
 from threading import Thread
 import shutil
 from datetime import datetime
@@ -141,6 +141,8 @@ import calendar
 #################
 #Time Delay between clean-ups
 TIME_DELAY = 60.0 * 2  # 2 min since that's how long between packets being sent
+directoryMode = 0755
+fileMode = 0655
 
 #File Paths
 RAW_FILE_PATH = "/data/vlf/RawData"
@@ -216,7 +218,7 @@ def loggerInit():
 
     #create the path if it does not exist
     if not os.path.exists(LOG_PATH):
-        os.makedirs(LOG_PATH)
+        os.makedirs(LOG_PATH, mode = 0775)
 
     LOG_FILE = os.path.join(LOG_PATH, LOG_FILENAME)
     #Handler to make sure files don't get to big, and will spin off new files
@@ -363,12 +365,13 @@ def fileCombinationBinary(data, header, filePath, fileName):
 
     #check the file path
     if not os.path.isdir(filePath):
-        os.makedirs(filePath)
+        os.makedirs(filePath, directoryMode)
         logger.debug("Making the data file path %s" % filePath)
 
     #open and write the data file
     logger.debug("Writing data file")
     with open(os.path.join(filePath, fileName), "w") as dataFile:
+        os.chmod(os.path.join(filePath, fileName),0655)
         try:
             dataFile.write(fileData)
         except IOError, e:
@@ -471,7 +474,8 @@ def sendToRTEMP(Header, malformed_packets):
     #We can't send RTEMP packets to quickly, otherwise we can overload the server. Maximum of one very 10 seconds
     if LAST_PACKET_TIMESTAMP is not None:
         timeDiff = current_time - LAST_PACKET_TIMESTAMP
-        timeDiff = timeDiff.total_seconds()
+        #timeDiff = timeDiff.total_seconds()
+        timeDiff = timeDiff.seconds + timeDiff.days * 86400
         if timeDiff < 10:
             Time.sleep(time_between_packets)
     LAST_PACKET_TIMESTAMP = current_time
@@ -651,7 +655,7 @@ def cleanUp():
                 file_name = "%s_%s_%s_%s_" % (f[0], f[1], f[2], f[3])
                 search_file_name = "%s_%s*_%s*" % (f[0], f[1][:-2], f[2])  # THIS IS A TEMPORARY FIX WHILE CAMROSE
                                                                            # HAS A GPS TIME ISSUE
-                #search_file = "%s*" % file_name
+                search_file = "%s*" % file_name
                 search_file = "%s*" % search_file_name
                 logger.info("Search file %s" % search_file_name)
 
@@ -699,7 +703,7 @@ def cleanUp():
                         logger.warning("Malformed file %s" % str(chunk))
 
                         if not os.path.exists(ERROR_PATH):
-                            os.makedirs(ERROR_PATH)
+                            os.makedirs(ERROR_PATH, mode = 0755)
                         try:
                             shutil.move(os.path.join(paths, chunk),
                                         os.path.join(ERROR_PATH, chunk))
@@ -715,7 +719,7 @@ def cleanUp():
                         logger.info("Combining Files due to corrupted file")
 
                         if not os.path.exists(full_file_path):
-                            os.makedirs(full_file_path)
+                            os.makedirs(full_file_path, mode=0755)
                         fileCombinationBinary(totalData, Headers[0], full_file_path, full_file_name)
                         CuruptedFiles += 1
 
@@ -732,6 +736,7 @@ def cleanUp():
                     Data += data
 
                     expectedFiles = header[-2]
+                    logger.debug("Found " + str(numberOfFiles) + " Expected " + str(expectedFiles))
                     #If not all 45 files are present, and the data has been sitting for longer than the time specified
                     #in CuruptedTime than the file set is assumed to be malformed, and moved to the graveyard
                     #There was a small revision to software 2.0 where 15 file chunks were sent instead of 45
@@ -743,15 +748,15 @@ def cleanUp():
                                                  day=int(fileDate[0:2]), hour=int(fileTime[0:2]), minute=int(fileTime[2:4]),
                                                  second=int(fileTime[4:6]))
                         timeDiff = fileTimeStamp - currentTime
-                        timeDiff = timeDiff.total_seconds()
+                        timeDiff = timeDiff.seconds + timeDiff.days * 86400
                         if abs(timeDiff) > CuruptedTime:
                             CuruptedFiles += 1
                             logger.warning(
                                 "Found file set with missing chunks more than an hour old, moving file set, found %s "
                                 "Files, expected %s" % (numberOfFiles, str(expectedFiles)))
                             try:
-                                sendToRTEMP(header, numberOfFiles)
-                            except Exception:
+                               sendToRTEMP(header, numberOfFiles)
+                            except:
                                 logger.error("Error in sendint packet to RTEMP")
                                 logger.debug("Error: " + sys.exc_info()[0])
                             for curuptedChunk in glob.glob(search_file):
@@ -772,7 +777,7 @@ def cleanUp():
                     totalData += data
                     chunkPath = os.path.join(CHUNK_DATA_PATH, hourDir)
                     if not os.path.exists(chunkPath):
-                        os.makedirs(chunkPath)
+                        os.makedirs(chunkPath, directoryMode)
 
                     try:
                         logger.info("Moving %s to %s" % (str(os.path.join(paths, chunk)),
@@ -784,29 +789,37 @@ def cleanUp():
                 if CuruptedFiles == 0:
                     full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
                     full_file_name = "%sFull_Data.dat" % file_name
-                    fileList.append(full_file_name)
+
                 else:
                     full_file_path = os.path.join(FULL_DATA_PATH, hourDir)
                     full_file_name = "%sFull_Data-%s.dat" % (file_name, str(CuruptedFiles))
                 if not os.path.exists(full_file_path):
-                    os.makedirs(full_file_path)
+                    os.makedirs(full_file_path, directoryMode)
 
                 if len(Headers) > 0:
                     logger.info("Making full file %s" % os.path.join(full_file_path, full_file_name))
                     fileCombinationBinary(Data, Headers[0], full_file_path, full_file_name)
-                    sendToRTEMP(Headers[0], CuruptedFiles)
+                    try:
+                        sendToRTEMP(Headers[0], CuruptedFiles)
+                    except:
+                        logger.error("Error in sendint packet to RTEMP")
+                        logger.debug(sys.exc_info())
+
+                fileList.append(os.path.join(full_file_path,full_file_name))
 
                 # Double check to make sure no files remain from this set
 
 
     #Start Eric's phase script in a new thread
-    try:
-        logger.info("Starting the phase script in new thread")
-        newThread = Thread(target=phase.totalphase,  args=(fileList, logger))
-        newThread.start()
-    except:
-        e = sys.exc_info()[0]
-        logger.error("Occured error " + str(e))
+    #print( "FILE LIST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    #print fileList
+    #try:
+    #    logger.info("Starting the phase script in new thread")
+    #    newThread = Thread(target=phase.totalphase,  args=(fileList, logger))
+    #    newThread.start()
+    #except:
+    #    e = sys.exc_info()[0]
+    #    logger.error("Occured error " + str(e))
 
     #Start this part for recursive checking, disabled for checking
     threading.Timer(TIME_DELAY, cleanUp).start()
@@ -821,7 +834,7 @@ def main():
 if __name__ == '__main__':
     # Check to make sure the path for the PID file exists
     if not os.path.isdir(PID_PATH):
-        os.makedirs(PID_PATH)
+        os.makedirs(PID_PATH, directoryMode)
     # Make the PID file and daemon object
     pidFile = os.path.join(PID_PATH, PID_FILE)
     fileManager = MyDaemon(pidFile)

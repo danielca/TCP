@@ -1,0 +1,17 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}
+\contentsline {section}{\numberline {2}Overview and Data Flow}{3}{section.2}
+\contentsline {section}{\numberline {3}RTEMP}{3}{section.3}
+\contentsline {section}{\numberline {4}Directory Tree}{3}{section.4}
+\contentsline {section}{\numberline {5}TCP Sever}{4}{section.5}
+\contentsline {section}{\numberline {6}File Manager}{4}{section.6}
+\contentsline {section}{\numberline {7}CDF and Summary Plots}{6}{section.7}
+\contentsline {subsection}{\numberline {7.1}Summary Plots}{6}{subsection.7.1}
+\contentsline {subsection}{\numberline {7.2}CDF}{6}{subsection.7.2}
+\contentsline {section}{\numberline {8}SD reader}{6}{section.8}
+\contentsline {section}{\numberline {9}FTP Hosting}{7}{section.9}
+\contentsline {section}{\numberline {10}Shell Scripts}{7}{section.10}
+\contentsline {section}{\numberline {11}HTML Page}{7}{section.11}
+\contentsline {section}{\numberline {12}Installation}{7}{section.12}
+\contentsline {section}{\numberline {13}Appendix}{8}{section.13}
+\contentsline {subsection}{\numberline {13.1}Dameon}{8}{subsection.13.1}
+\contentsline {subsection}{\numberline {13.2}Crontab}{8}{subsection.13.2}
